@@ -25,8 +25,10 @@ import ayarlar_penceresi
 import baslangic
 import ceviri
 import kisayollar
+import metinler
 import tema
 from kisayollar import DEGISTIRICILER
+from metinler import t
 
 if getattr(sys, "frozen", False):
     UYGULAMA_DIZINI = os.path.dirname(sys.executable)
@@ -45,6 +47,7 @@ VARSAYILAN_AYARLAR = {
     "geri_al_kisayolu": "ctrl+shift+z",
     "acilista_aktif": False,
     "tema": "sistem",  # sistem / acik / koyu
+    "arayuz_dili": "sistem",  # sistem / tr / en
     # Bu programlarda Enter normal çalışır (belge/tablo/terminal bozulmasın diye).
     # Kısayol modu bunlarda da çalışır.
     "enter_haric_programlar": [
@@ -205,6 +208,9 @@ class OtoCeviri:
             ayarlar["hedef_dil"] = "en"
         if ayarlar["tema"] not in tema.TEMALAR:
             ayarlar["tema"] = "sistem"
+        if ayarlar["arayuz_dili"] not in metinler.ARAYUZ_DILLERI:
+            ayarlar["arayuz_dili"] = "sistem"
+        metinler.ayarla(ayarlar["arayuz_dili"])
         for anahtar in ("ac_kapa_kisayolu", "cevir_kisayolu", "geri_al_kisayolu"):
             normal, hata = kisayollar.normallestir(str(ayarlar[anahtar]))
             ayarlar[anahtar] = normal or VARSAYILAN_AYARLAR[anahtar]
@@ -221,6 +227,7 @@ class OtoCeviri:
     def ayarlari_uygula(self, yeni: dict, windows_acilisinda: bool):
         """Ayarlar penceresinden çağrılır."""
         self.ayarlar = yeni
+        metinler.ayarla(yeni["arayuz_dili"])
         self._ayarlari_kaydet()
         self.kisayollari_kur()
         if windows_acilisinda != baslangic.acik_mi():
@@ -369,7 +376,7 @@ class OtoCeviri:
             return True, ceviri.cevir(metin, self.ayarlar["hedef_dil"])
         except ceviri.CeviriHatasi as e:
             logging.warning("Çeviri başarısız: %s", e)
-            self._bildir("Çeviri yapılamadı. İnternet bağlantını kontrol et.")
+            self._bildir(t("bildirim_ceviri_hatasi"))
             winsound.MessageBeep(winsound.MB_ICONHAND)
             return False, None
 
@@ -446,7 +453,7 @@ class OtoCeviri:
                 else:
                     self._tus_gonder("right")  # seçimi kaldır, imleç yerine dönsün
                     winsound.MessageBeep(winsound.MB_ICONHAND)
-                    self._bildir("Geri alınamadı: metin değişmiş. Ctrl+Z deneyebilirsin.")
+                    self._bildir(t("bildirim_geri_alinamadi"))
             except Exception:
                 logging.exception("Geri alınırken hata")
             finally:
@@ -468,8 +475,10 @@ class OtoCeviri:
         return resim
 
     def _ipucu(self) -> str:
-        durum = "AÇIK" if self.aktif else "KAPALI"
-        return f"OtoÇeviri: {durum} → {ceviri.DILLER[self.ayarlar['hedef_dil']]}"
+        return t("ipucu", durum=self._durum(), dil=metinler.dil_adi(self.ayarlar["hedef_dil"]))
+
+    def _durum(self) -> str:
+        return t("acik") if self.aktif else t("kapali")
 
     def _simgeyi_guncelle(self):
         if self.simge:
@@ -503,47 +512,47 @@ class OtoCeviri:
             baslangic.ayarla(not baslangic.acik_mi())
         except OSError:
             logging.exception("Başlangıç kaydı değiştirilemedi")
-            self._bildir("Windows açılış ayarı değiştirilemedi.")
+            self._bildir(t("bildirim_windows_hatasi"))
         self._simgeyi_guncelle()
 
     def _menu(self) -> pystray.Menu:
         g = kisayollar.goster
         diller = [
             pystray.MenuItem(
-                ad, self._dil_sec(kod), radio=True,
+                lambda _, kod=kod: metinler.dil_adi(kod), self._dil_sec(kod), radio=True,
                 checked=lambda _, kod=kod: self.ayarlar["hedef_dil"] == kod,
             )
-            for kod, ad in ceviri.DILLER.items()
+            for kod in ceviri.DILLER
         ]
         return pystray.Menu(
             pystray.MenuItem(
-                lambda _: f"Otomatik Çeviri: {'AÇIK' if self.aktif else 'KAPALI'}"
-                          f"  ({g(self.ayarlar['ac_kapa_kisayolu'])})",
+                lambda _: t("menu_otomatik", durum=self._durum(),
+                            kisayol=g(self.ayarlar["ac_kapa_kisayolu"])),
                 self.ac_kapa, default=True,
             ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
-                lambda _: f"Hedef dil: {ceviri.DILLER[self.ayarlar['hedef_dil']]}",
+                lambda _: t("menu_hedef_dil", dil=metinler.dil_adi(self.ayarlar["hedef_dil"])),
                 pystray.Menu(*diller),
             ),
-            pystray.MenuItem("Çeviri modu", pystray.Menu(
+            pystray.MenuItem(lambda _: t("ceviri_modu"), pystray.Menu(
                 pystray.MenuItem(
-                    lambda _: f"Kısayol ile çevir ({g(self.ayarlar['cevir_kisayolu'])})",
+                    lambda _: t("mod_kisayol_menu", kisayol=g(self.ayarlar["cevir_kisayolu"])),
                     self._ayar_degistir("kisayol_modu"),
                     checked=lambda _: self.ayarlar["kisayol_modu"],
                 ),
                 pystray.MenuItem(
-                    "Enter'a basınca otomatik çevir", self._ayar_degistir("enter_modu"),
+                    lambda _: t("mod_enter"), self._ayar_degistir("enter_modu"),
                     checked=lambda _: self.ayarlar["enter_modu"],
                 ),
             )),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
-                "Windows açılışında başlat", self._windows_acilisini_degistir,
+                lambda _: t("windows_acilisi"), self._windows_acilisini_degistir,
                 checked=lambda _: baslangic.acik_mi(),
             ),
-            pystray.MenuItem("Ayarlar…", lambda *_: ayarlar_penceresi.ac(self)),
-            pystray.MenuItem("Çıkış", self._cikis),
+            pystray.MenuItem(lambda _: t("menu_ayarlar"), lambda *_: ayarlar_penceresi.ac(self)),
+            pystray.MenuItem(lambda _: t("menu_cikis"), self._cikis),
         )
 
     def _cikis(self, *_):
@@ -567,8 +576,7 @@ class OtoCeviri:
         def hazir(simge):
             simge.visible = True
             self._bildir(
-                f"Çalışıyor. {kisayollar.goster(self.ayarlar['ac_kapa_kisayolu'])} "
-                f"ile aç/kapat ya da simgeye tıkla."
+                t("bildirim_basladi", kisayol=kisayollar.goster(self.ayarlar["ac_kapa_kisayolu"]))
             )
 
         self.simge.run(setup=hazir)
@@ -577,7 +585,7 @@ class OtoCeviri:
 def main():
     kilit = tek_ornek_kilidi()
     if kilit is None:
-        ctypes.windll.user32.MessageBoxW(None, "OtoÇeviri zaten çalışıyor.", "OtoÇeviri", 0x40)
+        ctypes.windll.user32.MessageBoxW(None, t("zaten_calisiyor"), "OtoÇeviri", 0x40)
         return
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)  # ayarlar penceresi bulanık olmasın

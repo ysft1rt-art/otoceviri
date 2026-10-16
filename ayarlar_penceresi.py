@@ -20,12 +20,14 @@ from PIL import ImageTk
 import baslangic
 import ceviri
 import kisayollar
+import metinler
 import tema
+from metinler import t
 
-KISAYOL_ALANLARI = [
-    ("ac_kapa_kisayolu", "Aç / Kapat"),
-    ("cevir_kisayolu", "Çevir"),
-    ("geri_al_kisayolu", "Son çeviriyi geri al"),
+KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı)
+    ("ac_kapa_kisayolu", "kisayol_ac_kapa"),
+    ("cevir_kisayolu", "kisayol_cevir"),
+    ("geri_al_kisayolu", "kisayol_geri_al"),
 ]
 
 _istekler = queue.Queue()
@@ -97,14 +99,13 @@ class AyarlarPenceresi(tk.Toplevel):
         self.uygulama = uygulama
         a = uygulama.ayarlar
 
-        self.title("OtoÇeviri Ayarları")
+        self.title(t("pencere_basligi"))
         self.resizable(False, False)
         self._simge = ImageTk.PhotoImage(uygulama.simge_resmi())
         self.iconphoto(True, self._simge)
 
-        kod_ad = ceviri.DILLER
-        self._ad_kod = {ad: kod for kod, ad in kod_ad.items()}
-        self.dil = tk.StringVar(value=kod_ad[a["hedef_dil"]])
+        self.dil = tk.StringVar(value=metinler.dil_adi(a["hedef_dil"]))
+        self.arayuz_dili = tk.StringVar(value=a["arayuz_dili"])
         self.enter_modu = tk.BooleanVar(value=a["enter_modu"])
         self.kisayol_modu = tk.BooleanVar(value=a["kisayol_modu"])
         self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
@@ -122,53 +123,59 @@ class AyarlarPenceresi(tk.Toplevel):
         govde.columnconfigure(0, weight=1)
 
         # -- Genel
-        genel = ttk.LabelFrame(govde, text="Genel", padding=10)
+        genel = ttk.LabelFrame(govde, text=t("genel"), padding=10)
         genel.grid(row=0, column=0, sticky="ew")
-        ttk.Label(genel, text="Hedef dil:").grid(row=0, column=0, sticky="w")
+        ttk.Label(genel, text=t("hedef_dil")).grid(row=0, column=0, sticky="w")
         self.dil_kutusu = ttk.Combobox(
-            genel, textvariable=self.dil, values=list(kod_ad.values()),
+            genel, textvariable=self.dil, values=[metinler.dil_adi(k) for k in ceviri.DILLER],
             state="readonly", width=18,
         )
         self.dil_kutusu.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
-        ttk.Label(genel, text="Tema:").grid(row=1, column=0, sticky="w")
-        temalar = ttk.Frame(genel)
-        temalar.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
-        for sutun, (kod, ad) in enumerate(tema.TEMALAR.items()):
-            ttk.Radiobutton(
-                temalar, text=ad, value=kod, variable=self.tema,
-                command=self._temayi_uygula,
-            ).grid(row=0, column=sutun, padx=(0, 12))
+        for satir, (yazi, degisken, secenekler, komut) in enumerate([
+            (t("arayuz_dili"), self.arayuz_dili,
+             [(k, metinler.arayuz_dili_adi(k)) for k in metinler.ARAYUZ_DILLERI], None),
+            (t("tema"), self.tema,
+             [("sistem", t("sistem")), ("acik", t("tema_acik")), ("koyu", t("tema_koyu"))],
+             self._temayi_uygula),
+        ], start=1):
+            ttk.Label(genel, text=yazi).grid(row=satir, column=0, sticky="w")
+            cerceve = ttk.Frame(genel)
+            cerceve.grid(row=satir, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+            for sutun, (kod, ad) in enumerate(secenekler):
+                ttk.Radiobutton(
+                    cerceve, text=ad, value=kod, variable=degisken, command=komut,
+                ).grid(row=0, column=sutun, padx=(0, 12))
         for satir, (degisken, yazi) in enumerate([
-            (self.acilista_aktif, "Program açılınca Otomatik Çeviri açık başlasın"),
-            (self.windows_acilisi, "Windows açılışında başlat"),
-        ], start=2):
+            (self.acilista_aktif, t("acilista_aktif")),
+            (self.windows_acilisi, t("windows_acilisi")),
+        ], start=3):
             ttk.Checkbutton(genel, text=yazi, variable=degisken).grid(
                 row=satir, column=0, columnspan=2, sticky="w", pady=1
             )
 
         # -- Çeviri modu
-        mod = ttk.LabelFrame(govde, text="Çeviri modu", padding=10)
+        mod = ttk.LabelFrame(govde, text=t("ceviri_modu"), padding=10)
         mod.grid(row=1, column=0, sticky="ew", pady=(12, 0))
         for satir, (degisken, yazi) in enumerate([
-            (self.kisayol_modu, "Kısayol ile çevir"),
-            (self.enter_modu, "Enter'a basınca otomatik çevir"),
+            (self.kisayol_modu, t("mod_kisayol")),
+            (self.enter_modu, t("mod_enter")),
         ]):
             ttk.Checkbutton(mod, text=yazi, variable=degisken).grid(
                 row=satir, column=0, sticky="w", pady=1
             )
 
         # -- Kısayollar
-        kisa = ttk.LabelFrame(govde, text="Kısayollar", padding=10)
+        kisa = ttk.LabelFrame(govde, text=t("kisayollar"), padding=10)
         kisa.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         kisa.columnconfigure(1, weight=1)
         self._degistir_dugmeleri = []
         for satir, (anahtar, ad) in enumerate(KISAYOL_ALANLARI):
-            ttk.Label(kisa, text=ad + ":").grid(row=satir, column=0, sticky="w", pady=2)
+            ttk.Label(kisa, text=t(ad) + ":").grid(row=satir, column=0, sticky="w", pady=2)
             ttk.Entry(
                 kisa, textvariable=self.kisayol_yazi[anahtar], state="readonly", width=22
             ).grid(row=satir, column=1, sticky="ew", padx=8)
             dugme = ttk.Button(
-                kisa, text="Değiştir", command=lambda k=anahtar: self._kisayol_kaydet(k)
+                kisa, text=t("degistir"), command=lambda k=anahtar: self._kisayol_kaydet(k)
             )
             dugme.grid(row=satir, column=2)
             self._degistir_dugmeleri.append(dugme)
@@ -176,11 +183,11 @@ class AyarlarPenceresi(tk.Toplevel):
         self.kisayol_hata.grid(row=len(KISAYOL_ALANLARI), column=0, columnspan=3, sticky="w")
 
         # -- Enter hariç programlar
-        haric = ttk.LabelFrame(govde, text="Enter modunun çalışmayacağı programlar", padding=10)
+        haric = ttk.LabelFrame(govde, text=t("haric_baslik"), padding=10)
         haric.grid(row=3, column=0, sticky="ew", pady=(12, 0))
         haric.columnconfigure(0, weight=1)
         ttk.Label(
-            haric, text="Her satıra bir program (ör. excel.exe). Kısayol modu bunlarda da çalışır.",
+            haric, text=t("haric_aciklama"),
             style="Soluk.TLabel",
         ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
         self.haric_kutusu = tk.Text(
@@ -195,8 +202,8 @@ class AyarlarPenceresi(tk.Toplevel):
         # -- Düğmeler
         dugmeler = ttk.Frame(govde)
         dugmeler.grid(row=4, column=0, sticky="e", pady=(14, 0))
-        ttk.Button(dugmeler, text="İptal", command=self.destroy).grid(row=0, column=0, padx=(0, 6))
-        self.kaydet_dugmesi = ttk.Button(dugmeler, text="Kaydet", command=self._kaydet)
+        ttk.Button(dugmeler, text=t("iptal"), command=self.destroy).grid(row=0, column=0, padx=(0, 6))
+        self.kaydet_dugmesi = ttk.Button(dugmeler, text=t("kaydet"), command=self._kaydet)
         self.kaydet_dugmesi.grid(row=0, column=1)
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -303,7 +310,7 @@ class AyarlarPenceresi(tk.Toplevel):
         for d in self._degistir_dugmeleri + [self.kaydet_dugmesi]:
             d.state(["disabled"])
         self.kisayol_hata.config(text="")
-        self.kisayol_yazi[anahtar].set("Tuşlara bas…  (Esc: iptal)")
+        self.kisayol_yazi[anahtar].set(t("tuslara_bas"))
         sonuc = {}
 
         def oku():
@@ -338,7 +345,7 @@ class AyarlarPenceresi(tk.Toplevel):
     def _kaydet(self):
         degerler = list(self.kisayol.values())
         if len(set(degerler)) != len(degerler):
-            self.kisayol_hata.config(text="Aynı kısayol birden fazla işe atanamaz.")
+            self.kisayol_hata.config(text=t("kisayol_ayni"))
             return
         haric = []
         for satir in self.haric_kutusu.get("1.0", "end").splitlines():
@@ -348,7 +355,8 @@ class AyarlarPenceresi(tk.Toplevel):
 
         yeni = dict(self.uygulama.ayarlar)
         yeni.update(
-            hedef_dil=self._ad_kod[self.dil.get()],
+            hedef_dil=ceviri.DILLER[self.dil_kutusu.current()],
+            arayuz_dili=self.arayuz_dili.get(),
             enter_modu=self.enter_modu.get(),
             kisayol_modu=self.kisayol_modu.get(),
             acilista_aktif=self.acilista_aktif.get(),
@@ -360,6 +368,6 @@ class AyarlarPenceresi(tk.Toplevel):
             self.uygulama.ayarlari_uygula(yeni, self.windows_acilisi.get())
         except Exception as e:
             logging.exception("Ayarlar uygulanamadı")
-            messagebox.showerror("OtoÇeviri", f"Ayarlar kaydedilemedi:\n{e}", parent=self)
+            messagebox.showerror("OtoÇeviri", t("kaydedilemedi", hata=e), parent=self)
             return
         self.destroy()

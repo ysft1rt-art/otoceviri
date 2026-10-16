@@ -14,21 +14,8 @@ GOOGLE_URLLERI = [
     "https://translate.google.com/translate_a/single",
 ]
 
-DILLER = {
-    "en": "İngilizce",
-    "de": "Almanca",
-    "fr": "Fransızca",
-    "es": "İspanyolca",
-    "it": "İtalyanca",
-    "pt": "Portekizce",
-    "nl": "Felemenkçe",
-    "ru": "Rusça",
-    "ar": "Arapça",
-    "ja": "Japonca",
-    "ko": "Korece",
-    "zh-CN": "Çince",
-    "tr": "Türkçe",
-}
+# Hedef dil kodları (Google Translate). Arayüzde görünen adları metinler.py'de.
+DILLER = ("en", "de", "fr", "es", "it", "pt", "nl", "ru", "ar", "ja", "ko", "zh-CN", "tr")
 
 _URL_DESENI = re.compile(r"^\s*(https?://|www\.)\S+\s*$", re.IGNORECASE)
 _SON_NOKTALAMA = ".!?…"

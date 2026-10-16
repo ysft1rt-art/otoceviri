@@ -2,6 +2,8 @@
 
 import keyboard
 
+from metinler import t
+
 DEGISTIRICILER = ("ctrl", "shift", "alt", "windows")
 _ESANLAMLAR = {"control": "ctrl", "win": "windows", "left windows": "windows",
                "right windows": "windows", "alt gr": "alt"}
@@ -19,13 +21,13 @@ def normallestir(ham: str) -> tuple[str | None, str | None]:
     tuslar = [p for p in parcalar if p not in DEGISTIRICILER]
 
     if len(tuslar) != 1:
-        return None, "Bir harf ya da tuş ile birlikte Ctrl/Alt/Win kullan (ör. Ctrl+Shift+U)."
+        return None, t("kisayol_hata_tus")
     if not {"ctrl", "alt", "windows"} & set(degistiriciler):
-        return None, "Kısayol Ctrl, Alt ya da Win tuşu içermeli; yoksa yazı yazmayı engeller."
+        return None, t("kisayol_hata_degistirici")
     try:
         keyboard.key_to_scan_codes(tuslar[0])
     except ValueError:
-        return None, f"'{tuslar[0]}' tuşu tanınmadı."
+        return None, t("kisayol_hata_taninmadi", tus=tuslar[0])
     return "+".join(degistiriciler + tuslar), None
 
 

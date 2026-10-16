@@ -3,7 +3,7 @@
 import ctypes
 import winreg
 
-TEMALAR = {"sistem": "Sistem", "acik": "Açık", "koyu": "Koyu"}
+TEMALAR = ("sistem", "acik", "koyu")  # adları metinler.py'de
 
 RENKLER = {
     False: {  # açık
