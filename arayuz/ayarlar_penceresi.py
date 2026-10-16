@@ -7,15 +7,16 @@ from tkinter import messagebox, ttk
 
 import keyboard
 
-from arayuz import pencere
+from arayuz import pencere, tema
 from cekirdek import baslangic, ceviri, kisayollar, metinler
 from cekirdek.metinler import t
 
-KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı)
-    ("ac_kapa_kisayolu", "kisayol_ac_kapa"),
-    ("cevir_kisayolu", "kisayol_cevir"),
-    ("geri_al_kisayolu", "kisayol_geri_al"),
+KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı, ikon)
+    ("ac_kapa_kisayolu", "kisayol_ac_kapa", "guc"),
+    ("cevir_kisayolu", "kisayol_cevir", "cevir"),
+    ("geri_al_kisayolu", "kisayol_geri_al", "geri_al"),
 ]
+TEMA_METINLERI = {"sistem": "sistem", "acik": "tema_acik", "koyu": "tema_koyu"}
 
 
 def ac(uygulama):
@@ -28,15 +29,13 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         super().__init__(kok, uygulama, t("pencere_basligi"))
         a = uygulama.ayarlar
 
-        self.dil = tk.StringVar(value=metinler.dil_adi(a["hedef_dil"]))
-        self.arayuz_dili = tk.StringVar(value=a["arayuz_dili"])
         self.ceviri_modu = tk.StringVar(value=a["ceviri_modu"])
         self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
         self.windows_acilisi = tk.BooleanVar(value=baslangic.acik_mi())
         self.tema = tk.StringVar(value=a["tema"])
-        self.kisayol = {k: a[k] for k, _ in KISAYOL_ALANLARI}
+        self.kisayol = {k: a[k] for k, _, _ in KISAYOL_ALANLARI}
         self.kisayol_yazi = {
-            k: tk.StringVar(value=kisayollar.goster(a[k])) for k, _ in KISAYOL_ALANLARI
+            k: tk.StringVar(value=kisayollar.goster(a[k])) for k, _, _ in KISAYOL_ALANLARI
         }
         self._kaydediliyor = False
 
@@ -45,59 +44,56 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         govde.columnconfigure(0, weight=1)
 
         # -- Genel
-        genel = ttk.LabelFrame(govde, text=t("genel"), padding=10)
+        genel = self._bolum(govde, "genel", t("genel"))
         genel.grid(row=0, column=0, sticky="ew")
-        ttk.Label(genel, text=t("hedef_dil")).grid(row=0, column=0, sticky="w")
-        self.dil_kutusu = ttk.Combobox(
-            genel, textvariable=self.dil, values=[metinler.dil_adi(k) for k in ceviri.DILLER],
-            state="readonly", width=18,
+        self.kutular = []  # açılır listeler (koyu temada liste kısmı ayrıca boyanır)
+        self.dil_kutusu, self.arayuz_kutusu, self.tema_kutusu = (
+            self._acilir_liste(genel, satir, ikon, yazi, adlar, secili)
+            for satir, (ikon, yazi, adlar, secili) in enumerate([
+                ("dil", t("hedef_dil"), [metinler.dil_adi(k) for k in ceviri.DILLER],
+                 ceviri.DILLER.index(a["hedef_dil"])),
+                ("arayuz_dili", t("arayuz_dili"),
+                 [metinler.arayuz_dili_adi(k) for k in metinler.ARAYUZ_DILLERI],
+                 metinler.ARAYUZ_DILLERI.index(a["arayuz_dili"])),
+                ("tema", t("tema"), [t(TEMA_METINLERI[k]) for k in tema.TEMALAR],
+                 tema.TEMALAR.index(a["tema"])),
+            ])
         )
-        self.dil_kutusu.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
-        for satir, (yazi, degisken, secenekler, komut) in enumerate([
-            (t("arayuz_dili"), self.arayuz_dili,
-             [(k, metinler.arayuz_dili_adi(k)) for k in metinler.ARAYUZ_DILLERI], None),
-            (t("tema"), self.tema,
-             [("sistem", t("sistem")), ("acik", t("tema_acik")), ("koyu", t("tema_koyu"))],
-             self._temayi_uygula),
-        ], start=1):
-            ttk.Label(genel, text=yazi).grid(row=satir, column=0, sticky="w")
-            cerceve = ttk.Frame(genel)
-            cerceve.grid(row=satir, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
-            for sutun, (kod, ad) in enumerate(secenekler):
-                ttk.Radiobutton(
-                    cerceve, text=ad, value=kod, variable=degisken, command=komut,
-                ).grid(row=0, column=sutun, padx=(0, 12))
-        for satir, (degisken, yazi) in enumerate([
-            (self.acilista_aktif, t("acilista_aktif")),
-            (self.windows_acilisi, t("windows_acilisi")),
+        self.tema_kutusu.bind("<<ComboboxSelected>>", self._tema_secildi)
+        for satir, (degisken, ikon, yazi) in enumerate([
+            (self.acilista_aktif, "guc", t("acilista_aktif")),
+            (self.windows_acilisi, "bilgisayar", t("windows_acilisi")),
         ], start=3):
-            ttk.Checkbutton(genel, text=yazi, variable=degisken).grid(
+            ttk.Checkbutton(genel, variable=degisken, **self.ikonlu(ikon, yazi)).grid(
                 row=satir, column=0, columnspan=2, sticky="w", pady=1
             )
 
         # -- Çeviri modu
-        mod = ttk.LabelFrame(govde, text=t("ceviri_modu"), padding=10)
+        mod = self._bolum(govde, "mod", t("ceviri_modu"))
         mod.grid(row=1, column=0, sticky="ew", pady=(12, 0))
-        for satir, (kod, yazi) in enumerate([
-            ("kisayol", t("mod_kisayol")),
-            ("enter", t("mod_enter")),
+        for satir, (kod, ikon, yazi) in enumerate([
+            ("kisayol", "klavye", t("mod_kisayol")),
+            ("enter", "enter", t("mod_enter")),
         ]):
-            ttk.Radiobutton(mod, text=yazi, value=kod, variable=self.ceviri_modu).grid(
-                row=satir, column=0, sticky="w", pady=1
-            )
+            ttk.Radiobutton(
+                mod, value=kod, variable=self.ceviri_modu, **self.ikonlu(ikon, yazi)
+            ).grid(row=satir, column=0, sticky="w", pady=1)
 
         # -- Kısayollar
-        kisa = ttk.LabelFrame(govde, text=t("kisayollar"), padding=10)
+        kisa = self._bolum(govde, "klavye", t("kisayollar"))
         kisa.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         kisa.columnconfigure(1, weight=1)
         self._degistir_dugmeleri = []
-        for satir, (anahtar, ad) in enumerate(KISAYOL_ALANLARI):
-            ttk.Label(kisa, text=t(ad) + ":").grid(row=satir, column=0, sticky="w", pady=2)
+        for satir, (anahtar, ad, ikon) in enumerate(KISAYOL_ALANLARI):
+            ttk.Label(kisa, **self.ikonlu(ikon, t(ad) + ":")).grid(
+                row=satir, column=0, sticky="w", pady=2
+            )
             ttk.Entry(
                 kisa, textvariable=self.kisayol_yazi[anahtar], state="readonly", width=22
             ).grid(row=satir, column=1, sticky="ew", padx=8)
             dugme = ttk.Button(
-                kisa, text=t("degistir"), command=lambda k=anahtar: self._kisayol_kaydet(k)
+                kisa, command=lambda k=anahtar: self._kisayol_kaydet(k),
+                **self.ikonlu("duzenle", t("degistir"), dugme=True),
             )
             dugme.grid(row=satir, column=2)
             self._degistir_dugmeleri.append(dugme)
@@ -105,7 +101,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         self.kisayol_hata.grid(row=len(KISAYOL_ALANLARI), column=0, columnspan=3, sticky="w")
 
         # -- Enter hariç programlar
-        haric = ttk.LabelFrame(govde, text=t("haric_baslik"), padding=10)
+        haric = self._bolum(govde, "engel", t("haric_baslik"))
         haric.grid(row=3, column=0, sticky="ew", pady=(12, 0))
         haric.columnconfigure(0, weight=1)
         ttk.Label(
@@ -124,14 +120,37 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         # -- Düğmeler
         dugmeler = ttk.Frame(govde)
         dugmeler.grid(row=4, column=0, sticky="e", pady=(14, 0))
-        ttk.Button(dugmeler, text=t("iptal"), command=self.destroy).grid(row=0, column=0, padx=(0, 6))
-        self.kaydet_dugmesi = ttk.Button(dugmeler, text=t("kaydet"), command=self._kaydet)
+        ttk.Button(
+            dugmeler, command=self.destroy, **self.ikonlu("iptal", t("iptal"), dugme=True)
+        ).grid(row=0, column=0, padx=(0, 6))
+        self.kaydet_dugmesi = ttk.Button(
+            dugmeler, command=self._kaydet, **self.ikonlu("kaydet", t("kaydet"), dugme=True)
+        )
         self.kaydet_dugmesi.grid(row=0, column=1)
 
         self.goster()
 
+    def _bolum(self, ust, ikon: str, baslik: str) -> ttk.LabelFrame:
+        """İkonlu başlığı olan çerçeve."""
+        return ttk.LabelFrame(
+            ust, labelwidget=ttk.Label(ust, **self.ikonlu(ikon, baslik)), padding=10
+        )
+
+    def _acilir_liste(self, ust, satir, ikon, yazi, adlar, secili) -> ttk.Combobox:
+        ttk.Label(ust, **self.ikonlu(ikon, yazi)).grid(row=satir, column=0, sticky="w")
+        kutu = ttk.Combobox(ust, values=adlar, state="readonly", width=18)
+        kutu.current(secili)
+        kutu.grid(row=satir, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+        self.kutular.append(kutu)
+        return kutu
+
+    def _tema_secildi(self, _olay=None):
+        self.tema.set(tema.TEMALAR[self.tema_kutusu.current()])
+        self.tema_kutusu.selection_clear()
+        self._temayi_uygula()  # kaydetmeden önce önizleme
+
     def tema_secimi(self) -> str:
-        return self.tema.get()  # kaydetmeden önce önizleme
+        return self.tema.get()
 
     def _tema_ozel(self, r):
         self.haric_kutusu.configure(
@@ -139,12 +158,13 @@ class AyarlarPenceresi(pencere.TemaliPencere):
             selectbackground=r["vurgu"], selectforeground="#ffffff",
             highlightbackground=r["kenar"], highlightcolor=r["vurgu"],
         )
-        try:  # açılır listenin kendisi ttk değil, ayrıca boyanmalı
-            liste = self.tk.call("ttk::combobox::PopdownWindow", self.dil_kutusu) + ".f.l"
-            self.tk.call(liste, "configure", "-background", r["alan"], "-foreground", r["yazi"],
-                         "-selectbackground", r["vurgu"], "-selectforeground", "#ffffff")
-        except tk.TclError:
-            pass
+        for kutu in self.kutular:
+            try:  # açılır listenin kendisi ttk değil, ayrıca boyanmalı
+                liste = self.tk.call("ttk::combobox::PopdownWindow", kutu) + ".f.l"
+                self.tk.call(liste, "configure", "-background", r["alan"], "-foreground", r["yazi"],
+                             "-selectbackground", r["vurgu"], "-selectforeground", "#ffffff")
+            except tk.TclError:
+                pass
 
     def destroy(self):
         self.uygulama.kayit_modu = False  # kayıt sürerken kapatılırsa kancalar susmuş kalmasın
@@ -206,7 +226,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         yeni = dict(self.uygulama.ayarlar)
         yeni.update(
             hedef_dil=ceviri.DILLER[self.dil_kutusu.current()],
-            arayuz_dili=self.arayuz_dili.get(),
+            arayuz_dili=metinler.ARAYUZ_DILLERI[self.arayuz_kutusu.current()],
             ceviri_modu=self.ceviri_modu.get(),
             acilista_aktif=self.acilista_aktif.get(),
             tema=self.tema.get(),

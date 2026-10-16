@@ -43,19 +43,22 @@ class HakkindaPenceresi(pencere.TemaliPencere):
         )
         kaynak = ttk.Frame(govde)
         kaynak.grid(row=3, column=0, columnspan=2, sticky="w")
-        ttk.Label(kaynak, text=t("kaynak_kodu")).grid(row=0, column=0)
+        ttk.Label(kaynak, **self.ikonlu("kod", t("kaynak_kodu"))).grid(row=0, column=0)
         baglanti = ttk.Label(
             kaynak, text=surum.GITHUB_URL.removeprefix("https://"),
             style="Baglanti.TLabel", cursor="hand2",
         )
         baglanti.grid(row=0, column=1, padx=(6, 0))
         baglanti.bind("<Button-1>", lambda _: webbrowser.open(surum.GITHUB_URL))
-        ttk.Label(govde, text=t("lisans")).grid(row=4, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        ttk.Label(govde, **self.ikonlu("belge", t("lisans"))).grid(row=4, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         # -- Güncelleme
         guncel = ttk.Frame(govde)
         guncel.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(14, 0))
-        self._denetle = ttk.Button(guncel, text=t("guncelleme_denetle"), command=self._denetlemeyi_baslat)
+        self._denetle = ttk.Button(
+            guncel, command=self._denetlemeyi_baslat,
+            **self.ikonlu("yenile", t("guncelleme_denetle"), dugme=True),
+        )
         self._denetle.grid(row=0, column=0, sticky="nw")
         self._durum = ttk.Label(guncel, wraplength=250, justify="left")
         self._durum.grid(row=0, column=1, sticky="w", padx=(10, 0))
@@ -64,7 +67,10 @@ class HakkindaPenceresi(pencere.TemaliPencere):
             self._durum_yaz(t("guncelleme_var", surum=uygulama.guncelleme.surum))
 
         # -- Sorumluluk reddi
-        sorumluluk = ttk.LabelFrame(govde, text=t("sorumluluk_baslik"), padding=10)
+        sorumluluk = ttk.LabelFrame(
+            govde, labelwidget=ttk.Label(govde, **self.ikonlu("uyari", t("sorumluluk_baslik"))),
+            padding=10,
+        )
         sorumluluk.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(14, 0))
         ttk.Label(
             sorumluluk, text=t("sorumluluk_metni"), wraplength=380, style="Soluk.TLabel",
@@ -72,7 +78,7 @@ class HakkindaPenceresi(pencere.TemaliPencere):
         ).grid(sticky="w")
 
         # -- Kapat
-        kapat = ttk.Button(govde, text=t("kapat"), command=self.destroy)
+        kapat = ttk.Button(govde, command=self.destroy, **self.ikonlu("cikis", t("kapat")))
         kapat.grid(row=7, column=0, columnspan=2, sticky="e", pady=(14, 0))
         kapat.focus_set()
         self.bind("<Escape>", lambda _: self.destroy())

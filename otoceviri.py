@@ -21,7 +21,7 @@ import pyperclip
 import pystray
 from PIL import Image
 
-from arayuz import ayarlar_penceresi, hakkinda_penceresi, logo, pencere, tema
+from arayuz import ayarlar_penceresi, hakkinda_penceresi, logo, pencere, tema, tepsi
 from cekirdek import baslangic, ceviri, guncelleme, kisayollar, metinler
 from cekirdek.kisayollar import DEGISTIRICILER
 from cekirdek.metinler import t
@@ -248,6 +248,7 @@ class OtoCeviri:
             simdiki = tema.sistem_koyu_mu()
             if simdiki != onceki and self.ayarlar["tema"] == "sistem":
                 tema.menu_temasi("sistem")
+                self._simgeyi_guncelle()  # menü ikonları yeni renkle çizilsin
             onceki = simdiki
 
     # ---- güncelleme
@@ -553,40 +554,41 @@ class OtoCeviri:
             for kod in ceviri.DILLER
         ]
         return pystray.Menu(
-            pystray.MenuItem(
-                lambda _: t("menu_guncelleme_mevcut"), lambda *_: hakkinda_penceresi.ac(self),
+            tepsi.Oge(
+                "guncelleme", lambda _: t("menu_guncelleme_mevcut"),
+                lambda *_: hakkinda_penceresi.ac(self),
                 visible=lambda _: self.guncelleme is not None,
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(
-                lambda _: t("menu_otomatik", durum=self._durum(),
-                            kisayol=g(self.ayarlar["ac_kapa_kisayolu"])),
+            tepsi.Oge(
+                "guc", lambda _: t("menu_otomatik", durum=self._durum(),
+                                   kisayol=g(self.ayarlar["ac_kapa_kisayolu"])),
                 self.ac_kapa, default=True,
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(
-                lambda _: t("menu_hedef_dil", dil=metinler.dil_adi(self.ayarlar["hedef_dil"])),
+            tepsi.Oge(
+                "dil", lambda _: t("menu_hedef_dil", dil=metinler.dil_adi(self.ayarlar["hedef_dil"])),
                 pystray.Menu(*diller),
             ),
-            pystray.MenuItem(lambda _: t("ceviri_modu"), pystray.Menu(
-                pystray.MenuItem(
-                    lambda _: t("mod_kisayol_menu", kisayol=g(self.ayarlar["cevir_kisayolu"])),
+            tepsi.Oge("mod", lambda _: t("ceviri_modu"), pystray.Menu(
+                tepsi.Oge(
+                    "klavye", lambda _: t("mod_kisayol_menu", kisayol=g(self.ayarlar["cevir_kisayolu"])),
                     self._mod_sec("kisayol"), radio=True,
                     checked=lambda _: self.ayarlar["ceviri_modu"] == "kisayol",
                 ),
-                pystray.MenuItem(
-                    lambda _: t("mod_enter"), self._mod_sec("enter"), radio=True,
+                tepsi.Oge(
+                    "enter", lambda _: t("mod_enter"), self._mod_sec("enter"), radio=True,
                     checked=lambda _: self.ayarlar["ceviri_modu"] == "enter",
                 ),
             )),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem(
-                lambda _: t("windows_acilisi"), self._windows_acilisini_degistir,
+            tepsi.Oge(
+                "bilgisayar", lambda _: t("windows_acilisi"), self._windows_acilisini_degistir,
                 checked=lambda _: baslangic.acik_mi(),
             ),
-            pystray.MenuItem(lambda _: t("menu_ayarlar"), lambda *_: ayarlar_penceresi.ac(self)),
-            pystray.MenuItem(lambda _: t("menu_hakkinda"), lambda *_: hakkinda_penceresi.ac(self)),
-            pystray.MenuItem(lambda _: t("menu_cikis"), self._cikis),
+            tepsi.Oge("ayarlar", lambda _: t("menu_ayarlar"), lambda *_: ayarlar_penceresi.ac(self)),
+            tepsi.Oge("bilgi", lambda _: t("menu_hakkinda"), lambda *_: hakkinda_penceresi.ac(self)),
+            tepsi.Oge("cikis", lambda _: t("menu_cikis"), self._cikis),
         )
 
     def _cikis(self, *_):
@@ -607,8 +609,9 @@ class OtoCeviri:
         keyboard.on_press(self._tusa_basildi)
         keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
         self.kisayollari_kur()
-        self.simge = pystray.Icon(
-            "OtoCeviri", self.simge_resmi(), self._ipucu(), self._menu()
+        self.simge = tepsi.Simge(
+            "OtoCeviri", self.simge_resmi(), self._ipucu(), self._menu(),
+            koyu_mu=lambda: tema.koyu_mu(self.ayarlar["tema"]),
         )
 
         def hazir(simge):

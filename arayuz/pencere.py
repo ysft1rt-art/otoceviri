@@ -16,7 +16,7 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-from arayuz import tema
+from arayuz import ikonlar, tema
 
 _istekler = queue.Queue()
 _tk_baslat = threading.Lock()
@@ -92,6 +92,7 @@ class TemaliPencere(tk.Toplevel):
         super().__init__(kok)
         self.uygulama = uygulama
         self._uygulanan_koyu = None
+        self._ikonlar = []  # (PhotoImage, ad, rol): tema değişince yeniden boyanır
         self.title(baslik)
         self.resizable(False, False)
         self._simge = ImageTk.PhotoImage(uygulama.simge_resmi())
@@ -101,6 +102,30 @@ class TemaliPencere(tk.Toplevel):
     def tema_secimi(self) -> str:
         """Pencerenin kullanacağı tema; ayarlar penceresi önizleme için değiştirir."""
         return self.uygulama.ayarlar["tema"]
+
+    # ---- ikonlar
+
+    def ikonlu(self, ad: str, metin: str, dugme: bool = False) -> dict:
+        """Widget'a verilecek text/image/compound seçenekleri. İkon temanın yazı
+        renginde çizilir; dugme=True ise devre dışıyken soluk görünür."""
+        if not ikonlar.var_mi():
+            return {"text": metin}
+        resim = self._yeni_ikon(ad, "yazi")
+        if dugme:
+            resim = (resim, "disabled", self._yeni_ikon(ad, "soluk"))
+        # ttk'da resimle yazı arasında boşluk ayarı yok; başa boşluk konur.
+        return {"text": " " + metin, "image": resim, "compound": "left"}
+
+    def _yeni_ikon(self, ad: str, rol: str):
+        foto = ImageTk.PhotoImage(self._ikon_ciz(ad, rol), master=self)
+        self._ikonlar.append((foto, ad, rol))
+        return foto
+
+    def _ikon_ciz(self, ad: str, rol: str):
+        r = tema.RENKLER[tema.koyu_mu(self.tema_secimi())]
+        # 16 nokta değil 16 piksel: Tk ölçeği (piksel/nokta) 96 DPI'da 4/3'tür.
+        boyut = round(16 * float(self.tk.call("tk", "scaling")) * 3 / 4)
+        return ikonlar.resim(ad, r[rol], boyut)
 
     def _tema_ozel(self, r: dict):
         """ttk olmayan parçaları (Text, açılır liste) boyamak için alt sınıflarda."""
@@ -186,5 +211,7 @@ class TemaliPencere(tk.Toplevel):
         stil.configure("Baglanti.TLabel", foreground=r["vurgu"], font=("Segoe UI", 9, "underline"))
 
         self.configure(background=r["zemin"])
+        for foto, ad, rol in self._ikonlar:
+            foto.paste(self._ikon_ciz(ad, rol))
         self._tema_ozel(r)
         tema.baslik_cubugu(int(self.wm_frame(), 16), koyu)
