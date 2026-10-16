@@ -7,12 +7,9 @@ from tkinter import messagebox, ttk
 
 import keyboard
 
-import baslangic
-import ceviri
-import kisayollar
-import metinler
-import pencere
-from metinler import t
+from arayuz import pencere
+from cekirdek import baslangic, ceviri, kisayollar, metinler
+from cekirdek.metinler import t
 
 KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı)
     ("ac_kapa_kisayolu", "kisayol_ac_kapa"),

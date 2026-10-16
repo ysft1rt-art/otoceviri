@@ -21,16 +21,10 @@ import pyperclip
 import pystray
 from PIL import Image, ImageDraw, ImageFont
 
-import ayarlar_penceresi
-import hakkinda_penceresi
-import pencere
-import baslangic
-import ceviri
-import kisayollar
-import metinler
-import tema
-from kisayollar import DEGISTIRICILER
-from metinler import t
+from arayuz import ayarlar_penceresi, hakkinda_penceresi, pencere, tema
+from cekirdek import baslangic, ceviri, kisayollar, metinler
+from cekirdek.kisayollar import DEGISTIRICILER
+from cekirdek.metinler import t
 
 if getattr(sys, "frozen", False):
     UYGULAMA_DIZINI = os.path.dirname(sys.executable)

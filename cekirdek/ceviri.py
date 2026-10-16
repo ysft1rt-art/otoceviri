@@ -144,11 +144,11 @@ def cevir(metin: str, hedef: str) -> str | None:
 
 
 if __name__ == "__main__":
-    # Deneme: python ceviri.py en "naber kanka nasılsın"
+    # Deneme: python -m cekirdek.ceviri en "naber kanka nasılsın"
     import sys
 
     sys.stdout.reconfigure(encoding="utf-8")
     if len(sys.argv) < 3:
-        print('Kullanım: python ceviri.py <dil> "metin"')
+        print('Kullanım: python -m cekirdek.ceviri <dil> "metin"')
         sys.exit(1)
     print(cevir(" ".join(sys.argv[2:]), sys.argv[1]) or "(çeviri gerekmedi)")

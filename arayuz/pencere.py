@@ -16,7 +16,7 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-import tema
+from arayuz import tema
 
 _istekler = queue.Queue()
 _tk_baslat = threading.Lock()

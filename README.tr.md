@@ -235,7 +235,7 @@ Geçersiz değerler varsayılana döner. "Windows açılışında başlat" bu do
 Çevirinin uygulama dışında çalışıp çalışmadığını dene:
 
 ```bash
-python ceviri.py en "merhaba dünya"
+python -m cekirdek.ceviri en "merhaba dünya"
 ```
 
 Bu da başarısız olursa Google'a giden bağlantıyı bir güvenlik duvarı, VPN, proxy ya da antivirüsün HTTPS taraması engelliyor olabilir. OtoÇeviri bağlantıyı zaten IPv4 üzerinden kurar, çünkü bazı ağlarda Google'a IPv6 ile kurulan bağlantı TLS el sıkışmasında kopuyor.
@@ -257,19 +257,19 @@ Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata a
 | Dosya | Görevi |
 |---|---|
 | `otoceviri.py` | Ana uygulama: tepsi simgesi, klavye kancaları, Enter/kısayol/geri alma mantığı |
-| `ceviri.py` | Google Çeviri istemcisi (IPv4, yedek adres) ve tarz koruma. Test için tek başına çalıştırılabilir. |
-| `ayarlar_penceresi.py` | Ayarlar penceresi |
-| `hakkinda_penceresi.py` | Hakkında penceresi |
-| `pencere.py` | Pencerelerin ortak kodu: Tkinter iş parçacığı ve temalı pencere temel sınıfı |
-| `surum.py` | Sürüm numarası ve GitHub bağlantısı |
-| `metinler.py` | Türkçe ve İngilizce arayüz metinleri |
-| `kisayollar.py` | Kısayolları okuma, doğrulama ve gösterme |
-| `tema.py` | Açık/koyu/sistem teması: renkler, başlık çubuğu, tepsi menüsü |
-| `baslangic.py` | Windows açılışında başlatma (kayıt defteri) |
+| `cekirdek/ceviri.py` | Google Çeviri istemcisi (IPv4, yedek adres) ve tarz koruma. Test için tek başına çalıştırılabilir. |
+| `cekirdek/kisayollar.py` | Kısayolları okuma, doğrulama ve gösterme |
+| `cekirdek/metinler.py` | Türkçe ve İngilizce arayüz metinleri |
+| `cekirdek/baslangic.py` | Windows açılışında başlatma (kayıt defteri) |
+| `cekirdek/surum.py` | Sürüm numarası ve GitHub bağlantısı |
+| `arayuz/pencere.py` | Pencerelerin ortak kodu: Tkinter iş parçacığı ve temalı pencere temel sınıfı |
+| `arayuz/tema.py` | Açık/koyu/sistem teması: renkler, başlık çubuğu, tepsi menüsü |
+| `arayuz/ayarlar_penceresi.py` | Ayarlar penceresi |
+| `arayuz/hakkinda_penceresi.py` | Hakkında penceresi |
 | `baslat.bat` | Uygulamayı konsol penceresi olmadan başlatır |
 | `requirements.txt` | Python bağımlılıkları |
 
-**Yeni bir arayüz dili eklemek için:** `metinler.py` içindeki `METINLER` ve `DIL_ADLARI`'na, mevcut dillerle aynı anahtarlara sahip yeni bir blok ekle. Sonra dil kodunu `ARAYUZ_DILLERI`'ne, dilin kendi dilindeki adını da `ARAYUZ_DILI_ADLARI`'na ekle.
+**Yeni bir arayüz dili eklemek için:** `cekirdek/metinler.py` içindeki `METINLER` ve `DIL_ADLARI`'na, mevcut dillerle aynı anahtarlara sahip yeni bir blok ekle. Sonra dil kodunu `ARAYUZ_DILLERI`'ne, dilin kendi dilindeki adını da `ARAYUZ_DILI_ADLARI`'na ekle.
 
 ## Yol haritası
 

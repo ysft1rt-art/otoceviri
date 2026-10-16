@@ -12,7 +12,8 @@ def baslatma_komutu() -> str:
     if getattr(sys, "frozen", False):  # PyInstaller ile derlenmiş .exe
         return f'"{sys.executable}"'
     pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-    betik = os.path.join(os.path.dirname(os.path.abspath(__file__)), "otoceviri.py")
+    proje = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    betik = os.path.join(proje, "otoceviri.py")
     return f'"{pythonw}" "{betik}"'
 
 

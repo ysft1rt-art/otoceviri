@@ -2,7 +2,7 @@
 
 import keyboard
 
-from metinler import t
+from cekirdek.metinler import t
 
 DEGISTIRICILER = ("ctrl", "shift", "alt", "windows")
 _ESANLAMLAR = {"control": "ctrl", "win": "windows", "left windows": "windows",

@@ -5,9 +5,9 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-import pencere
-import surum
-from metinler import t
+from arayuz import pencere
+from cekirdek import surum
+from cekirdek.metinler import t
 
 
 def ac(uygulama):

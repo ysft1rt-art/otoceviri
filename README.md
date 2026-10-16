@@ -235,7 +235,7 @@ Invalid values fall back to the defaults. "Start with Windows" is not stored in 
 Check whether translation works outside the app:
 
 ```bash
-python ceviri.py en "merhaba dünya"
+python -m cekirdek.ceviri en "merhaba dünya"
 ```
 
 If this fails too, a firewall, VPN, proxy or antivirus HTTPS scanning may be blocking Google. OtoÇeviri already forces IPv4, because on some networks IPv6 connections to Google break during the TLS handshake.
@@ -257,21 +257,21 @@ Look at `otoceviri.log` in the app folder. It contains error details only. You'r
 | File | Purpose |
 |---|---|
 | `otoceviri.py` | Main app: tray icon, keyboard hooks, Enter/hotkey/undo logic |
-| `ceviri.py` | Google Translate client (IPv4, fallback host) and style preservation. Can be run on its own for testing. |
-| `ayarlar_penceresi.py` | Settings window |
-| `hakkinda_penceresi.py` | About window |
-| `pencere.py` | Shared window code: the Tkinter thread and the themed window base class |
-| `surum.py` | Version number and GitHub link |
-| `metinler.py` | Interface texts in Turkish and English |
-| `kisayollar.py` | Hotkey parsing, validation and display |
-| `tema.py` | Light/dark/system theme: colors, title bar, tray menu |
-| `baslangic.py` | Start with Windows (registry) |
+| `cekirdek/ceviri.py` | Google Translate client (IPv4, fallback host) and style preservation. Can be run on its own for testing. |
+| `cekirdek/kisayollar.py` | Hotkey parsing, validation and display |
+| `cekirdek/metinler.py` | Interface texts in Turkish and English |
+| `cekirdek/baslangic.py` | Start with Windows (registry) |
+| `cekirdek/surum.py` | Version number and GitHub link |
+| `arayuz/pencere.py` | Shared window code: the Tkinter thread and the themed window base class |
+| `arayuz/tema.py` | Light/dark/system theme: colors, title bar, tray menu |
+| `arayuz/ayarlar_penceresi.py` | Settings window |
+| `arayuz/hakkinda_penceresi.py` | About window |
 | `baslat.bat` | Starts the app without a console window |
 | `requirements.txt` | Python dependencies |
 
 The code (names, comments) is written in Turkish.
 
-**Adding an interface language:** add a new block to `METINLER` and `DIL_ADLARI` in `metinler.py` with the same keys as the existing ones, then add the language code to `ARAYUZ_DILLERI` and its native name to `ARAYUZ_DILI_ADLARI`.
+**Adding an interface language:** add a new block to `METINLER` and `DIL_ADLARI` in `cekirdek/metinler.py` with the same keys as the existing ones, then add the language code to `ARAYUZ_DILLERI` and its native name to `ARAYUZ_DILI_ADLARI`.
 
 ## Roadmap
 
