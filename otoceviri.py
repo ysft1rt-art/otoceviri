@@ -322,6 +322,12 @@ class OtoCeviri:
         threading.Thread(target=self._enter_isle, daemon=True).start()
         return False
 
+    def _tusa_basildi(self, _olay):
+        """Yazmaya başlayınca Google bağlantısını hazırla; Enter'da beklemesin.
+        Klavye kancasının içinde çalışır: hızlı olmalı. Tuşun kendisine bakılmaz."""
+        if self.aktif and not self.kayit_modu and ceviri.isinmali_mi():
+            threading.Thread(target=ceviri.isit, daemon=True).start()
+
     def _geri_alinabilir(self) -> bool:
         son = self._son_ceviri
         return (
@@ -563,6 +569,8 @@ class OtoCeviri:
             logging.exception("Başlangıç kaydı güncellenemedi")
         tema.menu_temasi(self.ayarlar["tema"])
         threading.Thread(target=self._sistem_temasini_izle, daemon=True).start()
+        threading.Thread(target=ceviri.isit, daemon=True).start()
+        keyboard.on_press(self._tusa_basildi)
         keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
         self.kisayollari_kur()
         self.simge = pystray.Icon(

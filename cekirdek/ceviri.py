@@ -1,18 +1,29 @@
 """Google Translate ile çeviri ve yazım tarzını koruma."""
 
+import functools
 import http.client
 import json
 import re
 import socket
+import ssl
+import threading
+import time
 import unicodedata
 import urllib.parse
-import urllib.request
 
 # Biri yanıt vermezse sıradakine geçilir.
-GOOGLE_URLLERI = [
-    "https://translate.googleapis.com/translate_a/single",
-    "https://translate.google.com/translate_a/single",
-]
+GOOGLE_SUNUCULARI = ("translate.googleapis.com", "translate.google.com")
+_YOL = "/translate_a/single"
+_BASLIKLAR = {
+    "User-Agent": "Mozilla/5.0",
+    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+}
+
+# Google boşta kalan bağlantıyı bir süre sonra kapatıyor. Bundan uzun süre
+# kullanılmamış bağlantıya güvenmeyip yenisini kuruyoruz; yoksa kapanmış
+# bağlantıda hatayı (ya da zaman aşımını) beklemek gerekirdi.
+BOSTA_SINIRI = 200  # sn; Google ~240 sn sonra kapatıyor (ölçüldü)
+_ISINMA_ARALIGI = 5  # sn; ağ yokken her tuşta bağlanmayı denemesin
 
 # Hedef dil kodları (Google Translate). Arayüzde görünen adları metinler.py'de.
 DILLER = ("en", "de", "fr", "es", "it", "pt", "nl", "ru", "ar", "ja", "ko", "zh-CN", "tr")
@@ -34,12 +45,99 @@ class _IPv4HTTPSBaglantisi(http.client.HTTPSConnection):
         self.sock = self._context.wrap_socket(sok, server_hostname=self.host)
 
 
-class _IPv4HTTPSIsleyici(urllib.request.HTTPSHandler):
-    def https_open(self, istek):
-        return self.do_open(_IPv4HTTPSBaglantisi, istek, context=self._context)
+class _KaliciBaglanti:
+    """Bir sunucuya açık tutulan HTTPS bağlantısı (keep-alive). Her çeviride
+    TCP + TLS'i baştan kurmak isteği ~150 ms uzatıyordu."""
+
+    def __init__(self, sunucu: str):
+        self.sunucu = sunucu
+        self._baglanti = None
+        self._son_kullanim = 0.0
+        self._son_isinma = -_ISINMA_ARALIGI
+        self._kilit = threading.Lock()
+
+    def taze_mi(self) -> bool:
+        return (
+            self._baglanti is not None
+            and self._baglanti.sock is not None  # sunucu "Connection: close" dediyse None
+            and time.monotonic() - self._son_kullanim < BOSTA_SINIRI
+        )
+
+    def isinmali_mi(self) -> bool:
+        return (
+            not self.taze_mi()
+            and not self._kilit.locked()
+            and time.monotonic() - self._son_isinma >= _ISINMA_ARALIGI
+        )
+
+    def _kapat(self):
+        if self._baglanti is not None:
+            self._baglanti.close()
+            self._baglanti = None
+
+    def _ac(self, zaman_asimi: float):
+        self._kapat()
+        baglanti = _IPv4HTTPSBaglantisi(self.sunucu, timeout=zaman_asimi, context=_SSL_BAGLAMI)
+        baglanti.connect()
+        self._baglanti = baglanti
+        self._son_kullanim = time.monotonic()
+
+    def isit(self, zaman_asimi: float):
+        """Bağlantıyı önceden kurar; bu sırada gelen çeviri bitmesini bekler."""
+        if not self._kilit.acquire(blocking=False):
+            return  # zaten bağlanılıyor ya da çeviri yapılıyor
+        try:
+            self._son_isinma = time.monotonic()
+            if not self.taze_mi():
+                self._ac(zaman_asimi)
+        finally:
+            self._kilit.release()
+
+    def gonder(self, govde: bytes, zaman_asimi: float) -> bytes:
+        with self._kilit:
+            yeniden_kullanim = self.taze_mi()
+            if not yeniden_kullanim:
+                self._kapat()
+            # Eski bağlantıyı sunucu biz fark etmeden kapatmış olabilir: öyleyse
+            # bir kez de yeni bağlantıyla dene. Zaman aşımında tekrar bekletme.
+            for son_deneme in (not yeniden_kullanim, True):
+                try:
+                    if self._baglanti is None:
+                        self._ac(zaman_asimi)
+                    return self._istek(govde, zaman_asimi)
+                except Exception as e:
+                    self._kapat()
+                    if son_deneme or isinstance(e, (TimeoutError, CeviriHatasi)):
+                        raise
+
+    def _istek(self, govde: bytes, zaman_asimi: float) -> bytes:
+        baglanti = self._baglanti
+        baglanti.sock.settimeout(zaman_asimi)
+        baglanti.request("POST", _YOL, body=govde, headers=_BASLIKLAR)
+        yanit = baglanti.getresponse()
+        veri = yanit.read()  # bağlantı yeniden kullanılabilsin diye tamamı okunur
+        self._son_kullanim = time.monotonic()
+        if yanit.status != 200:
+            raise CeviriHatasi(f"HTTP {yanit.status}")
+        return veri
 
 
-_ACICI = urllib.request.build_opener(_IPv4HTTPSIsleyici())
+_SSL_BAGLAMI = ssl.create_default_context()
+_BAGLANTILAR = [_KaliciBaglanti(s) for s in GOOGLE_SUNUCULARI]
+
+
+def isit(zaman_asimi: float = 4.0):
+    """İlk çeviri beklemesin diye Google bağlantısını önceden kurar. Hata vermez;
+    bağlanamazsa çeviri sırasında yeniden denenir."""
+    try:
+        _BAGLANTILAR[0].isit(zaman_asimi)
+    except Exception:
+        pass
+
+
+def isinmali_mi() -> bool:
+    """Bağlantı soğumuş ve şu an kurulmuyorsa True (klavye kancasında çağrılır: hızlı)."""
+    return _BAGLANTILAR[0].isinmali_mi()
 
 
 def cevrilmeli_mi(metin: str) -> bool:
@@ -60,18 +158,9 @@ def google_cevir(metin: str, hedef: str, zaman_asimi: float = 4.0) -> tuple[str,
         {"client": "gtx", "sl": "auto", "tl": hedef, "dt": "t", "q": metin}
     ).encode("utf-8")
     son_hata = None
-    for url in GOOGLE_URLLERI:
-        istek = urllib.request.Request(
-            url,
-            data=veri,
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-            },
-        )
+    for baglanti in _BAGLANTILAR:
         try:
-            with _ACICI.open(istek, timeout=zaman_asimi) as yanit:
-                sonuc = json.loads(yanit.read().decode("utf-8"))
+            sonuc = json.loads(baglanti.gonder(veri, zaman_asimi).decode("utf-8"))
             break
         except Exception as e:
             son_hata = e
@@ -84,6 +173,11 @@ def google_cevir(metin: str, hedef: str, zaman_asimi: float = 4.0) -> tuple[str,
     except (TypeError, IndexError) as e:
         raise CeviriHatasi("Beklenmeyen yanıt biçimi") from e
     return ceviri, kaynak
+
+
+# "Tamam", "teşekkürler" gibi sık yazılan metinler için Google'a tekrar gitme.
+# Yalnızca bellekte tutulur; hatalar önbelleğe girmez.
+_onbellekli_cevir = functools.lru_cache(maxsize=256)(google_cevir)
 
 
 def _kucult(metin: str, hedef: str) -> str:
@@ -136,7 +230,7 @@ def cevir(metin: str, hedef: str) -> str | None:
     if not cevrilmeli_mi(metin):
         return None
     on_ek, govde, son_ek = _suslari_ayir(metin)
-    ceviri, kaynak = google_cevir(govde, hedef)
+    ceviri, kaynak = _onbellekli_cevir(govde, hedef)
     if not ceviri or kaynak.lower() == hedef.lower():
         return None
     sonuc = on_ek + tarzi_koru(govde, ceviri, hedef) + son_ek
