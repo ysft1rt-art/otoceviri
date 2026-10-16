@@ -16,7 +16,7 @@ from tkinter import ttk
 
 from PIL import ImageTk
 
-from arayuz import ikonlar, tema
+from arayuz import ikonlar, koyu_ogeler, tema
 
 _istekler = queue.Queue()
 _tk_baslat = threading.Lock()
@@ -180,29 +180,20 @@ class TemaliPencere(tk.Toplevel):
                            insertcolor=r["yazi"], arrowcolor=r["yazi"])
             stil.configure("TLabelframe", background=r["zemin"], bordercolor=r["kenar"])
             stil.configure("TLabelframe.Label", background=r["zemin"], foreground=r["yazi"])
-            stil.configure("TButton", background=r["dugme"], lightcolor=r["dugme"],
-                           darkcolor=r["dugme"], padding=(10, 3))
-            stil.map("TButton",
-                     background=[("disabled", r["zemin"]), ("pressed", r["kenar"]),
-                                 ("active", r["dugme_uzerinde"])],
-                     foreground=[("disabled", r["soluk"])])
+            # clam bu durumlarda açık gri zemin veriyor; yuvarlak köşelerin dışında görünür.
+            stil.map("TButton", foreground=[("disabled", r["soluk"])],
+                     background=[("disabled", r["zemin"]), ("pressed", r["zemin"]),
+                                 ("active", r["zemin"])])
             for tur in ("TCheckbutton", "TRadiobutton"):
-                stil.configure(tur, indicatorbackground=r["alan"],
-                               indicatorforeground="#ffffff", upperbordercolor=r["kutu_kenari"],
-                               lowerbordercolor=r["kutu_kenari"])
-                stil.map(tur, background=[("active", r["zemin"])],
-                         indicatorbackground=[("selected", r["vurgu"]), ("active", r["kenar"])])
-            stil.map("TEntry", fieldbackground=[("readonly", r["alan"])])
+                stil.map(tur, background=[("active", r["zemin"])])
+            stil.map("TEntry", background=[("readonly", r["zemin"])])
             stil.map("TCombobox",
-                     fieldbackground=[("readonly", r["alan"])],
+                     background=[("active", r["zemin"]), ("pressed", r["zemin"])],
                      selectbackground=[("readonly", r["alan"])],
-                     selectforeground=[("readonly", r["yazi"])],
-                     background=[("active", r["dugme_uzerinde"]), ("!active", r["dugme"])])
-            for tur in ("Vertical.TScrollbar", "Horizontal.TScrollbar"):
-                stil.configure(tur, background=r["kaydirma"], troughcolor=r["alan"],
-                               bordercolor=r["alan"], lightcolor=r["kaydirma"],
-                               darkcolor=r["kaydirma"], arrowcolor=r["yazi"], gripcount=0)
-                stil.map(tur, background=[("active", r["soluk"])])
+                     selectforeground=[("readonly", r["yazi"])])
+            stil.configure("Vertical.TScrollbar", troughcolor=r["alan"], bordercolor=r["alan"],
+                           lightcolor=r["alan"], darkcolor=r["alan"])
+            koyu_ogeler.kur(stil, r, self)  # yuvarlak köşeli düğme, kutu vb.
         else:
             stil.theme_use("vista" if "vista" in stil.theme_names() else "default")
         stil.configure("Soluk.TLabel", foreground=r["soluk"])

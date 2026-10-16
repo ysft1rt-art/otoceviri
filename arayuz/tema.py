@@ -14,7 +14,7 @@ RENKLER = {
         "zemin": "#202020", "alan": "#2d2d2d", "yazi": "#e6e6e6", "soluk": "#9a9a9a",
         "kenar": "#3c3c3c", "kutu_kenari": "#7a7a7a",
         "dugme": "#333333", "dugme_uzerinde": "#3d3d3d", "kaydirma": "#5a5a5a",
-        "vurgu": "#4c8dde", "hata": "#ff6b6b",
+        "vurgu": "#4c8dde", "vurgu_uzerinde": "#6aa1e6", "hata": "#ff6b6b",
     },
 }
 
