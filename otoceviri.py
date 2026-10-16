@@ -25,6 +25,7 @@ import ayarlar_penceresi
 import baslangic
 import ceviri
 import kisayollar
+import tema
 from kisayollar import DEGISTIRICILER
 
 if getattr(sys, "frozen", False):
@@ -43,6 +44,7 @@ VARSAYILAN_AYARLAR = {
     "cevir_kisayolu": "ctrl+shift+u",
     "geri_al_kisayolu": "ctrl+shift+z",
     "acilista_aktif": False,
+    "tema": "sistem",  # sistem / acik / koyu
     # Bu programlarda Enter normal çalışır (belge/tablo/terminal bozulmasın diye).
     # Kısayol modu bunlarda da çalışır.
     "enter_haric_programlar": [
@@ -201,6 +203,8 @@ class OtoCeviri:
             logging.exception("Ayar dosyası okunamadı, varsayılanlar kullanılıyor")
         if ayarlar["hedef_dil"] not in ceviri.DILLER:
             ayarlar["hedef_dil"] = "en"
+        if ayarlar["tema"] not in tema.TEMALAR:
+            ayarlar["tema"] = "sistem"
         for anahtar in ("ac_kapa_kisayolu", "cevir_kisayolu", "geri_al_kisayolu"):
             normal, hata = kisayollar.normallestir(str(ayarlar[anahtar]))
             ayarlar[anahtar] = normal or VARSAYILAN_AYARLAR[anahtar]
@@ -221,7 +225,18 @@ class OtoCeviri:
         self.kisayollari_kur()
         if windows_acilisinda != baslangic.acik_mi():
             baslangic.ayarla(windows_acilisinda)
+        tema.menu_temasi(self.ayarlar["tema"])
         self._simgeyi_guncelle()
+
+    def _sistem_temasini_izle(self):
+        """'Sistem' temasında Windows açık/koyu değişince tepsi menüsü de değişsin."""
+        onceki = tema.sistem_koyu_mu()
+        while True:
+            time.sleep(2)
+            simdiki = tema.sistem_koyu_mu()
+            if simdiki != onceki and self.ayarlar["tema"] == "sistem":
+                tema.menu_temasi("sistem")
+            onceki = simdiki
 
     # ---- açma / kapama
 
@@ -511,15 +526,17 @@ class OtoCeviri:
                 lambda _: f"Hedef dil: {ceviri.DILLER[self.ayarlar['hedef_dil']]}",
                 pystray.Menu(*diller),
             ),
-            pystray.MenuItem(
-                "Enter'a basınca çevir", self._ayar_degistir("enter_modu"),
-                checked=lambda _: self.ayarlar["enter_modu"],
-            ),
-            pystray.MenuItem(
-                lambda _: f"Kısayolla çevir ({g(self.ayarlar['cevir_kisayolu'])})",
-                self._ayar_degistir("kisayol_modu"),
-                checked=lambda _: self.ayarlar["kisayol_modu"],
-            ),
+            pystray.MenuItem("Çeviri modu", pystray.Menu(
+                pystray.MenuItem(
+                    lambda _: f"Kısayol ile çevir ({g(self.ayarlar['cevir_kisayolu'])})",
+                    self._ayar_degistir("kisayol_modu"),
+                    checked=lambda _: self.ayarlar["kisayol_modu"],
+                ),
+                pystray.MenuItem(
+                    "Enter'a basınca otomatik çevir", self._ayar_degistir("enter_modu"),
+                    checked=lambda _: self.ayarlar["enter_modu"],
+                ),
+            )),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Windows açılışında başlat", self._windows_acilisini_degistir,
@@ -539,6 +556,8 @@ class OtoCeviri:
             baslangic.yolu_guncelle()
         except OSError:
             logging.exception("Başlangıç kaydı güncellenemedi")
+        tema.menu_temasi(self.ayarlar["tema"])
+        threading.Thread(target=self._sistem_temasini_izle, daemon=True).start()
         keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
         self.kisayollari_kur()
         self.simge = pystray.Icon(

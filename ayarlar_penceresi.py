@@ -20,6 +20,7 @@ from PIL import ImageTk
 import baslangic
 import ceviri
 import kisayollar
+import tema
 
 KISAYOL_ALANLARI = [
     ("ac_kapa_kisayolu", "Aç / Kapat"),
@@ -108,11 +109,13 @@ class AyarlarPenceresi(tk.Toplevel):
         self.kisayol_modu = tk.BooleanVar(value=a["kisayol_modu"])
         self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
         self.windows_acilisi = tk.BooleanVar(value=baslangic.acik_mi())
+        self.tema = tk.StringVar(value=a["tema"])
         self.kisayol = {k: a[k] for k, _ in KISAYOL_ALANLARI}
         self.kisayol_yazi = {
             k: tk.StringVar(value=kisayollar.goster(a[k])) for k, _ in KISAYOL_ALANLARI
         }
         self._kaydediliyor = False
+        self._uygulanan_koyu = None
 
         govde = ttk.Frame(self, padding=16)
         govde.grid(sticky="nsew")
@@ -122,23 +125,41 @@ class AyarlarPenceresi(tk.Toplevel):
         genel = ttk.LabelFrame(govde, text="Genel", padding=10)
         genel.grid(row=0, column=0, sticky="ew")
         ttk.Label(genel, text="Hedef dil:").grid(row=0, column=0, sticky="w")
-        ttk.Combobox(
+        self.dil_kutusu = ttk.Combobox(
             genel, textvariable=self.dil, values=list(kod_ad.values()),
             state="readonly", width=18,
-        ).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+        )
+        self.dil_kutusu.grid(row=0, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+        ttk.Label(genel, text="Tema:").grid(row=1, column=0, sticky="w")
+        temalar = ttk.Frame(genel)
+        temalar.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+        for sutun, (kod, ad) in enumerate(tema.TEMALAR.items()):
+            ttk.Radiobutton(
+                temalar, text=ad, value=kod, variable=self.tema,
+                command=self._temayi_uygula,
+            ).grid(row=0, column=sutun, padx=(0, 12))
         for satir, (degisken, yazi) in enumerate([
-            (self.enter_modu, "Enter'a basınca çevirip gönder"),
-            (self.kisayol_modu, "Kısayolla çevir"),
             (self.acilista_aktif, "Program açılınca Otomatik Çeviri açık başlasın"),
             (self.windows_acilisi, "Windows açılışında başlat"),
-        ], start=1):
+        ], start=2):
             ttk.Checkbutton(genel, text=yazi, variable=degisken).grid(
                 row=satir, column=0, columnspan=2, sticky="w", pady=1
             )
 
+        # -- Çeviri modu
+        mod = ttk.LabelFrame(govde, text="Çeviri modu", padding=10)
+        mod.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        for satir, (degisken, yazi) in enumerate([
+            (self.kisayol_modu, "Kısayol ile çevir"),
+            (self.enter_modu, "Enter'a basınca otomatik çevir"),
+        ]):
+            ttk.Checkbutton(mod, text=yazi, variable=degisken).grid(
+                row=satir, column=0, sticky="w", pady=1
+            )
+
         # -- Kısayollar
         kisa = ttk.LabelFrame(govde, text="Kısayollar", padding=10)
-        kisa.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        kisa.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         kisa.columnconfigure(1, weight=1)
         self._degistir_dugmeleri = []
         for satir, (anahtar, ad) in enumerate(KISAYOL_ALANLARI):
@@ -151,18 +172,20 @@ class AyarlarPenceresi(tk.Toplevel):
             )
             dugme.grid(row=satir, column=2)
             self._degistir_dugmeleri.append(dugme)
-        self.kisayol_hata = ttk.Label(kisa, foreground="#c0392b", wraplength=340)
+        self.kisayol_hata = ttk.Label(kisa, style="Hata.TLabel", wraplength=340)
         self.kisayol_hata.grid(row=len(KISAYOL_ALANLARI), column=0, columnspan=3, sticky="w")
 
         # -- Enter hariç programlar
         haric = ttk.LabelFrame(govde, text="Enter modunun çalışmayacağı programlar", padding=10)
-        haric.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        haric.grid(row=3, column=0, sticky="ew", pady=(12, 0))
         haric.columnconfigure(0, weight=1)
         ttk.Label(
             haric, text="Her satıra bir program (ör. excel.exe). Kısayol modu bunlarda da çalışır.",
-            foreground="#666",
+            style="Soluk.TLabel",
         ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
-        self.haric_kutusu = tk.Text(haric, width=44, height=7, font=("Consolas", 9))
+        self.haric_kutusu = tk.Text(
+            haric, width=44, height=7, font=("Consolas", 9), relief="flat", highlightthickness=1
+        )
         kaydirma = ttk.Scrollbar(haric, command=self.haric_kutusu.yview)
         self.haric_kutusu.configure(yscrollcommand=kaydirma.set)
         self.haric_kutusu.grid(row=1, column=0, sticky="ew")
@@ -171,18 +194,88 @@ class AyarlarPenceresi(tk.Toplevel):
 
         # -- Düğmeler
         dugmeler = ttk.Frame(govde)
-        dugmeler.grid(row=3, column=0, sticky="e", pady=(14, 0))
+        dugmeler.grid(row=4, column=0, sticky="e", pady=(14, 0))
         ttk.Button(dugmeler, text="İptal", command=self.destroy).grid(row=0, column=0, padx=(0, 6))
         self.kaydet_dugmesi = ttk.Button(dugmeler, text="Kaydet", command=self._kaydet)
         self.kaydet_dugmesi.grid(row=0, column=1)
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.update_idletasks()
+        self._temayi_uygula()
         g, y = self.winfo_width(), self.winfo_height()
         x = (self.winfo_screenwidth() - g) // 2
         yy = (self.winfo_screenheight() - y) // 3
         self.geometry(f"+{x}+{yy}")
         self.one_getir()
+        self.after(1500, self._sistem_temasini_izle)
+
+    # ---- tema
+
+    def _sistem_temasini_izle(self):
+        """'Sistem' seçiliyken Windows teması değişirse pencere de değişsin."""
+        if self.tema.get() == "sistem":
+            self._temayi_uygula()
+        self.after(1500, self._sistem_temasini_izle)
+
+    def _temayi_uygula(self):
+        koyu = tema.koyu_mu(self.tema.get())
+        if koyu == self._uygulanan_koyu:
+            return
+        self._uygulanan_koyu = koyu
+        r = tema.RENKLER[koyu]
+        stil = ttk.Style(self)
+        if koyu:
+            # 'vista' teması Windows'un kendi çizimini kullanır ve renklendirilemez.
+            stil.theme_use("clam")
+            stil.configure(".", background=r["zemin"], foreground=r["yazi"],
+                           fieldbackground=r["alan"], bordercolor=r["kenar"],
+                           lightcolor=r["zemin"], darkcolor=r["zemin"],
+                           troughcolor=r["zemin"], focuscolor=r["vurgu"],
+                           selectbackground=r["vurgu"], selectforeground="#ffffff",
+                           insertcolor=r["yazi"], arrowcolor=r["yazi"])
+            stil.configure("TLabelframe", background=r["zemin"], bordercolor=r["kenar"])
+            stil.configure("TLabelframe.Label", background=r["zemin"], foreground=r["yazi"])
+            stil.configure("TButton", background=r["dugme"], lightcolor=r["dugme"],
+                           darkcolor=r["dugme"], padding=(10, 3))
+            stil.map("TButton",
+                     background=[("disabled", r["zemin"]), ("pressed", r["kenar"]),
+                                 ("active", r["dugme_uzerinde"])],
+                     foreground=[("disabled", r["soluk"])])
+            for tur in ("TCheckbutton", "TRadiobutton"):
+                stil.configure(tur, indicatorbackground=r["alan"],
+                               indicatorforeground="#ffffff", upperbordercolor=r["kutu_kenari"],
+                               lowerbordercolor=r["kutu_kenari"])
+                stil.map(tur, background=[("active", r["zemin"])],
+                         indicatorbackground=[("selected", r["vurgu"]), ("active", r["kenar"])])
+            stil.map("TEntry", fieldbackground=[("readonly", r["alan"])])
+            stil.map("TCombobox",
+                     fieldbackground=[("readonly", r["alan"])],
+                     selectbackground=[("readonly", r["alan"])],
+                     selectforeground=[("readonly", r["yazi"])],
+                     background=[("active", r["dugme_uzerinde"]), ("!active", r["dugme"])])
+            for tur in ("Vertical.TScrollbar", "Horizontal.TScrollbar"):
+                stil.configure(tur, background=r["kaydirma"], troughcolor=r["alan"],
+                               bordercolor=r["alan"], lightcolor=r["kaydirma"],
+                               darkcolor=r["kaydirma"], arrowcolor=r["yazi"], gripcount=0)
+                stil.map(tur, background=[("active", r["soluk"])])
+        else:
+            stil.theme_use("vista" if "vista" in stil.theme_names() else "default")
+        stil.configure("Soluk.TLabel", foreground=r["soluk"])
+        stil.configure("Hata.TLabel", foreground=r["hata"])
+
+        self.configure(background=r["zemin"])
+        self.haric_kutusu.configure(
+            background=r["alan"], foreground=r["yazi"], insertbackground=r["yazi"],
+            selectbackground=r["vurgu"], selectforeground="#ffffff",
+            highlightbackground=r["kenar"], highlightcolor=r["vurgu"],
+        )
+        try:  # açılır listenin kendisi ttk değil, ayrıca boyanmalı
+            liste = self.tk.call("ttk::combobox::PopdownWindow", self.dil_kutusu) + ".f.l"
+            self.tk.call(liste, "configure", "-background", r["alan"], "-foreground", r["yazi"],
+                         "-selectbackground", r["vurgu"], "-selectforeground", "#ffffff")
+        except tk.TclError:
+            pass
+        tema.baslik_cubugu(int(self.wm_frame(), 16), koyu)
 
     def destroy(self):
         global _acik_pencere
@@ -259,6 +352,7 @@ class AyarlarPenceresi(tk.Toplevel):
             enter_modu=self.enter_modu.get(),
             kisayol_modu=self.kisayol_modu.get(),
             acilista_aktif=self.acilista_aktif.get(),
+            tema=self.tema.get(),
             enter_haric_programlar=haric,
             **self.kisayol,
         )
