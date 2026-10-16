@@ -2,11 +2,11 @@
 
 # OtoÇeviri
 
-**Kendi dilinde yaz, onların dilinde gönder.** OtoÇeviri, klavyeyle yazdığın metni seçtiğin dile çeviren küçük bir Windows tepsi uygulamasıdır. Çeviri, yazdığın uygulamanın içinde gerçekleşir: Discord, WhatsApp, Telegram, tarayıcıdaki sohbetler, oyun içi sohbetler ve daha fazlası. Yazım tarzını bozmaz: küçük harf küçük kalır, samimi dil samimi kalır, emojiler koyduğun yerde durur.
+**Kendi dilinde yaz, onların dilinde gönder.** OtoÇeviri, klavyeyle yazdığın metni seçtiğin dile çeviren küçük bir Windows tepsi uygulamasıdır. Çeviri, yazdığın uygulamanın içinde gerçekleşir: Discord, WhatsApp, Telegram, tarayıcıdaki sohbetler, oyun içi sohbetler ve daha fazlası. Yazım tarzını bozmaz: küçük harfle yazdıysan çeviri de küçük harf kalır, sona nokta koymadıysan nokta eklenmez, emojiler koyduğun yerde durur.
 
 ```
-Sen yazarsın:    naber kanka bu akşam maça geliyon mu 😄
-Onlar görür:     what's up bro, are you coming to the match tonight? 😄
+Sen yazarsın:    merhaba, bu akşamki toplantıya katılabilecek misin? 🙂
+Onlar görür:     hello, will you be able to attend the meeting tonight? 🙂
 ```
 
 ## İçindekiler
@@ -52,12 +52,12 @@ sequenceDiagram
     participant Uyg as Sohbet uygulaması (ör. Discord)
     participant Oto as OtoÇeviri
     participant G as Google Çeviri
-    Sen->>Uyg: "selam nasılsın" yazarsın
+    Sen->>Uyg: "yarın sabah görüşelim mi?" yazarsın
     Sen->>Oto: Enter'a basarsın
     Oto->>Oto: Enter'ı bekletir
     Oto->>Uyg: Ctrl+A, Ctrl+C (mesajı kopyalar)
     Oto->>G: çevirir
-    G-->>Oto: "hi how are you"
+    G-->>Oto: "Shall we meet tomorrow morning?"
     Oto->>Oto: tarzını geri uygular (küçük harf, nokta yok, emojiler)
     Oto->>Uyg: Ctrl+V (mesajı değiştirir), sonra Enter
     Oto->>Oto: panondaki eski içeriği geri koyar
@@ -132,22 +132,23 @@ OtoÇeviri'nin kısayolları yakalanır ve yazdığın programa ulaşmaz. Örne�
 
 ## Tarz koruma
 
-Google Çeviri her şeyi resmileştirme eğilimindedir. OtoÇeviri metni çevirir, sonra yazış alışkanlıklarını geri uygular:
+Google Çeviri ilk harfi büyütür ve sen koymasan bile sona çoğu zaman nokta ekler. OtoÇeviri metni çevirir, sonra yazış alışkanlıklarını geri uygular. Aşağıdakiler gerçek sonuçlardır:
 
-| Sen yazarsın | Düz çeviri | OtoÇeviri gönderir |
+| Sen yazarsın | Google'ın düz çevirisi | OtoÇeviri gönderir |
 |---|---|---|
-| `naber kanka nasılsın` | `What's up bro, how are you?` | `what's up bro, how are you?` |
-| `NEREDESİN YA` | `Where are you?` | `WHERE ARE YOU?` |
-| `tamam sonra konuşuruz` | `Okay, we'll talk later.` | `okay, we'll talk later` |
-| `selam 👋` | `Hello` (emoji düşebilir) | `hello 👋` |
+| `yarın sabah görüşelim mi?` | `Shall we meet tomorrow morning?` | `shall we meet tomorrow morning?` |
+| `Rapor hazır, inceleyebilirsiniz` | `The report is ready, you can review it.` | `The report is ready, you can review it` |
+| `harika bir haber 🎉` | `Great news 🎉` | `great news 🎉` |
 
 Kurallar:
 
-- **Hep küçük harfle** yazdıysan çeviri de küçük harf olur. Türkçe I/ı ve İ/i doğru dönüştürülür.
-- **BÜYÜK HARFLE** yazdıysan (en az 3 harf) çeviri de büyük harf olur.
+- **Hep küçük harfle** yazdıysan çeviri de küçük harf olur. Türkçe I/ı ve İ/i doğru dönüştürülür. Kural çevirinin tamamına uygulanır, yani İngilizcede "I" zamiri de "i" olur. Bunu istemiyorsan mesajına büyük harfle başla.
+- **BÜYÜK HARFLE** yazdıysan (en az 3 harf) çeviri de büyük harf olur. Google bunu genelde zaten yapar, OtoÇeviri garanti altına alır.
 - **Sona noktalama koymadıysan** Google'ın eklediği nokta silinir. Soru ve ünlem işaretleri korunur.
-- Mesajın başındaki ve sonundaki **emojiler** korunur. Ten rengi, aile emojileri ve bayraklar da buna dahil.
+- Mesajın başındaki ve sonundaki **emojiler** korunur. Ten rengi, aile emojileri ve bayraklar da buna dahil. Google emojileri genelde korur ama bazen sondakini düşürür, OtoÇeviri onu geri ekler.
 - **Baştaki/sondaki boşluklar ve satır sonları** korunur.
+
+Çeviriler Google'dan geldiği için aynı metin farklı zamanlarda biraz farklı çevrilebilir.
 
 ## Ayarlar
 
@@ -269,7 +270,7 @@ Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata a
 - Tek başına çalışan `.exe` (Python kurulumu gerektirmeden)
 - Gelen mesajları okuma: yabancı dildeki bir mesajı seç, kendi dilinde gör
 - Programa göre farklı hedef dil (ör. Discord'da İngilizce, WhatsApp'ta Almanca)
-- Argo ve bağlamı daha iyi anlayan isteğe bağlı bir yapay zeka çeviri motoru
+- Bağlamı daha iyi anlayan, daha doğal çeviriler yapan isteğe bağlı bir yapay zeka çeviri motoru
 
 ## Lisans
 

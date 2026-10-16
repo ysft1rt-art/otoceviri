@@ -2,11 +2,11 @@
 
 # OtoÇeviri
 
-**Type in your own language, send in theirs.** OtoÇeviri ("auto-translate" in Turkish) is a small Windows tray app that translates what you type into the language you choose, right inside the app you are typing in: Discord, WhatsApp, Telegram, browser chats, in-game chat and more. It keeps your writing style intact, so lowercase stays lowercase, slang stays casual and emojis stay where you put them.
+**Type in your own language, send in theirs.** OtoÇeviri ("auto-translate" in Turkish) is a small Windows tray app that translates what you type into the language you choose, right inside the app you are typing in: Discord, WhatsApp, Telegram, browser chats, in-game chat and more. It keeps your writing style intact: if you write in lowercase, the translation stays lowercase; if you leave out the final period, none is added; and emojis stay where you put them.
 
 ```
-You type:     naber kanka bu akşam maça geliyon mu 😄
-They see:     what's up bro, are you coming to the match tonight? 😄
+You type:     merhaba, bu akşamki toplantıya katılabilecek misin? 🙂
+They see:     hello, will you be able to attend the meeting tonight? 🙂
 ```
 
 ## Contents
@@ -52,12 +52,12 @@ sequenceDiagram
     participant App as Chat app (e.g. Discord)
     participant Oto as OtoÇeviri
     participant G as Google Translate
-    You->>App: type "selam nasılsın"
+    You->>App: type "yarın sabah görüşelim mi?"
     You->>Oto: press Enter
     Oto->>Oto: hold the Enter key back
     Oto->>App: Ctrl+A, Ctrl+C (copy the message)
     Oto->>G: translate
-    G-->>Oto: "hi how are you"
+    G-->>Oto: "Shall we meet tomorrow morning?"
     Oto->>Oto: restore your style (lowercase, no period, emojis)
     Oto->>App: Ctrl+V (replace the message), then Enter
     Oto->>Oto: put your original clipboard back
@@ -132,22 +132,23 @@ OtoÇeviri's hotkeys are swallowed so the app you're typing in never sees them. 
 
 ## Style preservation
 
-Plain Google Translate tends to make everything formal. OtoÇeviri translates the text and then puts your writing habits back:
+Google Translate capitalizes the first letter and often adds a final period, even when you didn't write one. OtoÇeviri translates the text and then puts your writing habits back. These are real results:
 
-| You write | Plain translation | OtoÇeviri sends |
+| You write | Plain Google Translate | OtoÇeviri sends |
 |---|---|---|
-| `naber kanka nasılsın` | `What's up bro, how are you?` | `what's up bro, how are you?` |
-| `NEREDESİN YA` | `Where are you?` | `WHERE ARE YOU?` |
-| `tamam sonra konuşuruz` | `Okay, we'll talk later.` | `okay, we'll talk later` |
-| `selam 👋` | `Hello` (emoji may be dropped) | `hello 👋` |
+| `yarın sabah görüşelim mi?` | `Shall we meet tomorrow morning?` | `shall we meet tomorrow morning?` |
+| `Rapor hazır, inceleyebilirsiniz` | `The report is ready, you can review it.` | `The report is ready, you can review it` |
+| `harika bir haber 🎉` | `Great news 🎉` | `great news 🎉` |
 
 The rules:
 
-- **All lowercase** in → all lowercase out (Turkish dotted/dotless i handled correctly).
-- **ALL CAPS** in (at least 3 letters) → ALL CAPS out.
+- **All lowercase** in → all lowercase out (Turkish dotted/dotless i handled correctly). This applies to the whole translation, so in English the pronoun "I" also becomes "i". If you don't want that, start your message with a capital letter.
+- **ALL CAPS** in (at least 3 letters) → ALL CAPS out. Google usually does this already; OtoÇeviri makes sure of it.
 - **No final punctuation** in → the period Google adds is removed. Question and exclamation marks are kept.
-- **Emojis** at the start and end of the message are kept, including skin tones, family emojis and flags.
+- **Emojis** at the start and end of the message are kept, including skin tones, family emojis and flags. Google usually keeps them too, but sometimes drops one at the end; OtoÇeviri puts it back.
 - **Leading/trailing spaces and line breaks** are kept.
+
+Translations can vary slightly from one request to the next, because they come from Google.
 
 ## Settings
 
@@ -271,7 +272,7 @@ The code (names, comments) is written in Turkish.
 - Standalone `.exe` (no Python installation needed)
 - Reading incoming messages: select a foreign message and see it in your language
 - A different target language for each app (for example English in Discord, German in WhatsApp)
-- Optional AI translation engine for better slang and context
+- Optional AI translation engine for more natural, context-aware translations
 
 ## License
 
