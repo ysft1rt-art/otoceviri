@@ -33,8 +33,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
 
         self.dil = tk.StringVar(value=metinler.dil_adi(a["hedef_dil"]))
         self.arayuz_dili = tk.StringVar(value=a["arayuz_dili"])
-        self.enter_modu = tk.BooleanVar(value=a["enter_modu"])
-        self.kisayol_modu = tk.BooleanVar(value=a["kisayol_modu"])
+        self.ceviri_modu = tk.StringVar(value=a["ceviri_modu"])
         self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
         self.windows_acilisi = tk.BooleanVar(value=baslangic.acik_mi())
         self.tema = tk.StringVar(value=a["tema"])
@@ -82,11 +81,11 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         # -- Çeviri modu
         mod = ttk.LabelFrame(govde, text=t("ceviri_modu"), padding=10)
         mod.grid(row=1, column=0, sticky="ew", pady=(12, 0))
-        for satir, (degisken, yazi) in enumerate([
-            (self.kisayol_modu, t("mod_kisayol")),
-            (self.enter_modu, t("mod_enter")),
+        for satir, (kod, yazi) in enumerate([
+            ("kisayol", t("mod_kisayol")),
+            ("enter", t("mod_enter")),
         ]):
-            ttk.Checkbutton(mod, text=yazi, variable=degisken).grid(
+            ttk.Radiobutton(mod, text=yazi, value=kod, variable=self.ceviri_modu).grid(
                 row=satir, column=0, sticky="w", pady=1
             )
 
@@ -211,8 +210,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         yeni.update(
             hedef_dil=ceviri.DILLER[self.dil_kutusu.current()],
             arayuz_dili=self.arayuz_dili.get(),
-            enter_modu=self.enter_modu.get(),
-            kisayol_modu=self.kisayol_modu.get(),
+            ceviri_modu=self.ceviri_modu.get(),
             acilista_aktif=self.acilista_aktif.get(),
             tema=self.tema.get(),
             enter_haric_programlar=haric,

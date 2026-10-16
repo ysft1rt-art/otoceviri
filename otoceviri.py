@@ -37,13 +37,13 @@ if getattr(sys, "frozen", False):
 else:
     UYGULAMA_DIZINI = os.path.dirname(os.path.abspath(__file__))
 
+MODLAR = ("enter", "kisayol")
 AYAR_DOSYASI = os.path.join(UYGULAMA_DIZINI, "ayarlar.json")
 LOG_DOSYASI = os.path.join(UYGULAMA_DIZINI, "otoceviri.log")
 
 VARSAYILAN_AYARLAR = {
     "hedef_dil": "en",
-    "enter_modu": True,
-    "kisayol_modu": True,
+    "ceviri_modu": "enter",  # enter / kisayol
     "ac_kapa_kisayolu": "ctrl+shift+y",
     "cevir_kisayolu": "ctrl+shift+u",
     "geri_al_kisayolu": "ctrl+shift+z",
@@ -212,6 +212,13 @@ class OtoCeviri:
             ayarlar["tema"] = "sistem"
         if ayarlar["arayuz_dili"] not in metinler.ARAYUZ_DILLERI:
             ayarlar["arayuz_dili"] = "sistem"
+        # Eski sürümlerde iki ayrı onay kutusu vardı; artık yalnızca biri seçilebilir.
+        eski_enter = ayarlar.pop("enter_modu", None)
+        eski_kisayol = ayarlar.pop("kisayol_modu", None)
+        if eski_enter is not None or eski_kisayol is not None:
+            ayarlar["ceviri_modu"] = "kisayol" if eski_kisayol and not eski_enter else "enter"
+        if ayarlar["ceviri_modu"] not in MODLAR:
+            ayarlar["ceviri_modu"] = "enter"
         metinler.ayarla(ayarlar["arayuz_dili"])
         for anahtar in ("ac_kapa_kisayolu", "cevir_kisayolu", "geri_al_kisayolu"):
             normal, hata = kisayollar.normallestir(str(ayarlar[anahtar]))
@@ -268,7 +275,7 @@ class OtoCeviri:
             self._kisayol_kancasi(
                 a["cevir_kisayolu"],
                 self._kisayol_isle,
-                lambda: self.aktif and self.ayarlar["kisayol_modu"] and not self._mesgul.locked(),
+                lambda: self.aktif and self.ayarlar["ceviri_modu"] == "kisayol" and not self._mesgul.locked(),
             ),
             # Geri alınacak bir şey yoksa kısayol programın kendisine gider
             # (ör. Ctrl+Shift+Z = yinele).
@@ -307,7 +314,7 @@ class OtoCeviri:
 
     def _enter_basildi(self, olay) -> bool:
         """Klavye kancasının içinde çalışır: hızlı olmalı. True = Enter'ı geçir."""
-        if self._gecir or self.kayit_modu or not self.aktif or not self.ayarlar["enter_modu"]:
+        if self._gecir or self.kayit_modu or not self.aktif or self.ayarlar["ceviri_modu"] != "enter":
             return True
         # Shift+Enter (yeni satır), Ctrl+Enter vb. dokunulmaz.
         if any(keyboard.is_pressed(t) for t in DEGISTIRICILER):
@@ -504,9 +511,9 @@ class OtoCeviri:
             self._simgeyi_guncelle()
         return isle
 
-    def _ayar_degistir(self, anahtar):
+    def _mod_sec(self, mod):
         def isle(*_):
-            self.ayarlar[anahtar] = not self.ayarlar[anahtar]
+            self.ayarlar["ceviri_modu"] = mod
             self._ayarlari_kaydet()
             self._simgeyi_guncelle()
         return isle
@@ -542,12 +549,12 @@ class OtoCeviri:
             pystray.MenuItem(lambda _: t("ceviri_modu"), pystray.Menu(
                 pystray.MenuItem(
                     lambda _: t("mod_kisayol_menu", kisayol=g(self.ayarlar["cevir_kisayolu"])),
-                    self._ayar_degistir("kisayol_modu"),
-                    checked=lambda _: self.ayarlar["kisayol_modu"],
+                    self._mod_sec("kisayol"), radio=True,
+                    checked=lambda _: self.ayarlar["ceviri_modu"] == "kisayol",
                 ),
                 pystray.MenuItem(
-                    lambda _: t("mod_enter"), self._ayar_degistir("enter_modu"),
-                    checked=lambda _: self.ayarlar["enter_modu"],
+                    lambda _: t("mod_enter"), self._mod_sec("enter"), radio=True,
+                    checked=lambda _: self.ayarlar["ceviri_modu"] == "enter",
                 ),
             )),
             pystray.Menu.SEPARATOR,

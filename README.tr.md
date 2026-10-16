@@ -164,12 +164,12 @@ Tepsi simgesine sağ tıklayıp **Ayarlar…**'ı seç. Değişiklikler **Kaydet
 | Program açılınca Otomatik Çeviri açık başlasın | Uygulama varsayılan olarak Otomatik Çeviri kapalı başlar. |
 | Windows açılışında başlat | Windows'ta oturum açınca OtoÇeviri'yi başlatır. Ayar yalnızca senin kullanıcı hesabına yazılır (`HKCU\...\Run`), yönetici izni gerekmez. Uygulama klasörünü taşırsan kayıttaki yol bir sonraki açılışta kendiliğinden düzelir. |
 
-**Çeviri modu**
+**Çeviri modu** (aynı anda yalnızca biri seçilebilir)
 
 | Ayar | Ne yapar |
 |---|---|
-| Kısayol ile çevir | Kısayol modunu (`Ctrl+Shift+U`) açar/kapatır. |
-| Enter'a basınca otomatik çevir | Enter modunu açar/kapatır. |
+| Kısayol ile çevir | Seçili metni yalnızca kısayola (`Ctrl+Shift+U`) basınca çevirir. |
+| Enter'a basınca otomatik çevir | Enter'a basınca metni çevirip gönderir. |
 
 **Kısayollar**
 
@@ -202,8 +202,7 @@ Ayarlar, uygulamanın yanındaki **`ayarlar.json`** dosyasında saklanır. Dosya
 | `hedef_dil` | `"en"` | Hedef dil kodu: `en`, `de`, `fr`, `es`, `it`, `pt`, `nl`, `ru`, `ar`, `ja`, `ko`, `zh-CN`, `tr` |
 | `arayuz_dili` | `"sistem"` | Arayüz dili: `sistem`, `tr`, `en` |
 | `tema` | `"sistem"` | Tema: `sistem`, `acik`, `koyu` |
-| `enter_modu` | `true` | Enter'a basınca çevir |
-| `kisayol_modu` | `true` | Kısayol ile çevir |
+| `ceviri_modu` | `"enter"` | Çeviri modu: `enter` (Enter'a basınca çevir) veya `kisayol` (kısayol ile çevir) |
 | `acilista_aktif` | `false` | Açılışta Otomatik Çeviri açık başlasın |
 | `ac_kapa_kisayolu` | `"ctrl+shift+y"` | Aç/kapat kısayolu |
 | `cevir_kisayolu` | `"ctrl+shift+u"` | Çevir kısayolu |
@@ -242,7 +241,7 @@ python ceviri.py en "merhaba dünya"
 Bu da başarısız olursa Google'a giden bağlantıyı bir güvenlik duvarı, VPN, proxy ya da antivirüsün HTTPS taraması engelliyor olabilir. OtoÇeviri bağlantıyı zaten IPv4 üzerinden kurar, çünkü bazı ağlarda Google'a IPv6 ile kurulan bağlantı TLS el sıkışmasında kopuyor.
 
 **Enter'a basınca hiçbir şey olmuyor.**
-Simgenin yeşil olduğundan (Otomatik Çeviri açık), Çeviri modu altında Enter modunun açık olduğundan ve programın hariç listesinde olmadığından emin ol. Program yönetici olarak çalışıyorsa [Sınırlamalar](#sınırlamalar) bölümüne bak.
+Simgenin yeşil olduğundan (Otomatik Çeviri açık), Çeviri modu altında Enter modunun seçili olduğundan ve programın hariç listesinde olmadığından emin ol. Program yönetici olarak çalışıyorsa [Sınırlamalar](#sınırlamalar) bölümüne bak.
 
 **Bir kısayol başka bir programla çakışıyor.**
 Ayarlar → Kısayollar'dan başka bir kombinasyon seç.

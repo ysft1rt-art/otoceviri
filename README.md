@@ -164,12 +164,12 @@ Right-click the tray icon and choose **Settings…**. Changes take effect as soo
 | Turn Auto-Translate on when the app starts | By default the app starts with Auto-Translate off. |
 | Start with Windows | Starts OtoÇeviri when you sign in to Windows. It is stored only for your user account (`HKCU\...\Run`), so no administrator rights are needed. If you move the app folder, the stored path fixes itself the next time the app starts. |
 
-**Translation mode**
+**Translation mode** (only one can be selected at a time)
 
 | Setting | What it does |
 |---|---|
-| Translate with hotkey | Turns hotkey mode (`Ctrl+Shift+U`) on or off. |
-| Translate automatically on Enter | Turns Enter mode on or off. |
+| Translate with hotkey | Translates the selected text only when you press the hotkey (`Ctrl+Shift+U`). |
+| Translate automatically on Enter | Translates and sends the text when you press Enter. |
 
 **Hotkeys**
 
@@ -202,8 +202,7 @@ Settings are stored in **`ayarlar.json`** next to the app. The file is created o
 | `hedef_dil` | `"en"` | Target language code: `en`, `de`, `fr`, `es`, `it`, `pt`, `nl`, `ru`, `ar`, `ja`, `ko`, `zh-CN`, `tr` |
 | `arayuz_dili` | `"sistem"` | Interface language: `sistem` (system), `tr`, `en` |
 | `tema` | `"sistem"` | Theme: `sistem` (system), `acik` (light), `koyu` (dark) |
-| `enter_modu` | `true` | Translate on Enter |
-| `kisayol_modu` | `true` | Translate with hotkey |
+| `ceviri_modu` | `"enter"` | Translation mode: `enter` (translate on Enter) or `kisayol` (translate with hotkey) |
 | `acilista_aktif` | `false` | Turn Auto-Translate on at startup |
 | `ac_kapa_kisayolu` | `"ctrl+shift+y"` | On/off hotkey |
 | `cevir_kisayolu` | `"ctrl+shift+u"` | Translate hotkey |
@@ -242,7 +241,7 @@ python ceviri.py en "merhaba dünya"
 If this fails too, a firewall, VPN, proxy or antivirus HTTPS scanning may be blocking Google. OtoÇeviri already forces IPv4, because on some networks IPv6 connections to Google break during the TLS handshake.
 
 **Nothing happens when I press Enter.**
-Check that the icon is green (Auto-Translate is on), that Enter mode is enabled under Translation mode, and that the app isn't on the exclusion list. If the target app runs as administrator, see [Limitations](#limitations).
+Check that the icon is green (Auto-Translate is on), that Enter mode is selected under Translation mode, and that the app isn't on the exclusion list. If the target app runs as administrator, see [Limitations](#limitations).
 
 **A hotkey clashes with another app.**
 Pick a different combination in Settings → Hotkeys.
