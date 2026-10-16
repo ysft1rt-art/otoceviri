@@ -68,10 +68,20 @@ Translation usually takes about 0.3 seconds.
 ## Requirements
 
 - Windows 10 or Windows 11
-- Python 3.10 or newer (developed and tested with Python 3.13)
 - An internet connection
+- Only when running from source: Python 3.10 or newer (developed and tested with Python 3.13)
 
 ## Installation
+
+### Prebuilt release (recommended)
+
+1. Download the latest `OtoCeviri-<version>.zip` from the [Releases](https://github.com/ysft1rt-art/otoceviri/releases) page.
+2. Extract it to any folder. No Python installation is needed.
+3. Run `OtoCeviri.exe`. Settings (`ayarlar.json`) and the error log are written next to the `.exe`.
+
+> **Antivirus warning:** OtoÇeviri listens to the keyboard so it can catch Enter. Because the app isn't code-signed, Windows SmartScreen may say "Windows protected your PC" (**More info → Run anyway**), and some antivirus programs may flag it as suspicious by mistake. All of the code is open in this repository; you can run it from source as shown below or build it yourself.
+
+### From source
 
 ```bash
 git clone https://github.com/ysft1rt-art/otoceviri.git
@@ -83,7 +93,7 @@ The dependencies are [`keyboard`](https://pypi.org/project/keyboard/) (global ke
 
 ## Getting started
 
-1. Double-click **`baslat.bat`**. It starts the app without a console window. You can also run `pythonw otoceviri.py` yourself.
+1. Run **`OtoCeviri.exe`** (prebuilt release) or **`baslat.bat`** (from source). The app starts without a console window. You can also run `pythonw otoceviri.py` yourself.
 2. A small **Ç** icon appears in the tray, next to the clock. If you don't see it, check the hidden icons behind the `^` arrow.
 3. Auto-Translate starts **off**: the icon is **gray**. Press **`Ctrl+Shift+Y`** or left-click the icon to turn it on. The icon turns **green** and you hear a short high beep. Turning it off plays a low beep.
 4. Right-click the icon to choose the **target language**. English is the default.
@@ -93,7 +103,7 @@ Only one copy of the app can run at a time. Starting it a second time shows "Oto
 
 ## Using it
 
-There are two translation modes. Both are on by default, and you can turn each one on or off under **Translation mode** in the tray menu or in Settings.
+There are two translation modes, and only one can be selected at a time. The default is **Translate automatically on Enter**. You can switch modes under **Translation mode** in the tray menu or in Settings.
 
 ### Translate automatically on Enter
 
@@ -266,6 +276,8 @@ Look at `otoceviri.log` in the app folder. It contains error details only. You'r
 | `arayuz/tema.py` | Light/dark/system theme: colors, title bar, tray menu |
 | `arayuz/ayarlar_penceresi.py` | Settings window |
 | `arayuz/hakkinda_penceresi.py` | About window |
+| `arayuz/logo.py` | App icon (one drawing for the tray, windows and the `.exe`) |
+| `derleme/derle.py` | Builds the Windows release (PyInstaller) |
 | `baslat.bat` | Starts the app without a console window |
 | `requirements.txt` | Python dependencies |
 
@@ -273,9 +285,17 @@ The code (names, comments) is written in Turkish.
 
 **Adding an interface language:** add a new block to `METINLER` and `DIL_ADLARI` in `cekirdek/metinler.py` with the same keys as the existing ones, then add the language code to `ARAYUZ_DILLERI` and its native name to `ARAYUZ_DILI_ADLARI`.
 
+### Building
+
+```bash
+pip install -r derleme/gereksinimler.txt
+python derleme/derle.py
+```
+
+The output is the `dist/OtoCeviri/` folder and a ready-to-publish `dist/OtoCeviri-<version>.zip`. The version number comes from `cekirdek/surum.py` and is also written into the `.exe` properties. The app is built as a folder rather than a single file (`--onefile`), so it doesn't unpack itself to a temporary folder on every launch and starts instantly.
+
 ## Roadmap
 
-- Standalone `.exe` (no Python installation needed)
 - Reading incoming messages: select a foreign message and see it in your language
 - A different target language for each app (for example English in Discord, German in WhatsApp)
 - Optional AI translation engine for more natural, context-aware translations

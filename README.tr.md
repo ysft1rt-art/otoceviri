@@ -68,10 +68,20 @@ sequenceDiagram
 ## Gereksinimler
 
 - Windows 10 ya da Windows 11
-- Python 3.10 ya da daha yenisi (Python 3.13 ile geliştirildi ve test edildi)
 - İnternet bağlantısı
+- Yalnızca kaynak koddan çalıştıracaksan: Python 3.10 ya da daha yenisi (Python 3.13 ile geliştirildi ve test edildi)
 
 ## Kurulum
+
+### Hazır sürüm (önerilen)
+
+1. [Releases](https://github.com/ysft1rt-art/otoceviri/releases) sayfasından en son `OtoCeviri-<sürüm>.zip` dosyasını indir.
+2. Zip'i istediğin bir klasöre çıkar. Python kurmana gerek yok.
+3. `OtoCeviri.exe`'yi çalıştır. Ayarlar (`ayarlar.json`) ve hata günlüğü `.exe`'nin yanına yazılır.
+
+> **Antivirüs uyarısı:** OtoÇeviri Enter'ı yakalamak için klavyeyi dinler. Program imzasız olduğu için Windows SmartScreen "Windows bilgisayarınızı korudu" diyebilir (**Ek bilgi → Yine de çalıştır**), bazı antivirüsler de onu yanlışlıkla şüpheli bulabilir. Kodun tamamı bu depoda açık; istersen aşağıdaki gibi kaynaktan çalıştırabilir ya da kendin derleyebilirsin.
+
+### Kaynak koddan
 
 ```bash
 git clone https://github.com/ysft1rt-art/otoceviri.git
@@ -83,7 +93,7 @@ Kullanılan kütüphaneler: [`keyboard`](https://pypi.org/project/keyboard/) (si
 
 ## Başlarken
 
-1. **`baslat.bat`** dosyasına çift tıkla. Uygulama konsol penceresi açmadan başlar. İstersen `pythonw otoceviri.py` komutunu kendin de çalıştırabilirsin.
+1. Hazır sürümde **`OtoCeviri.exe`**'yi, kaynak kodda **`baslat.bat`**'ı çalıştır. Uygulama konsol penceresi açmadan başlar. İstersen `pythonw otoceviri.py` komutunu kendin de çalıştırabilirsin.
 2. Saatin yanında, tepside küçük bir **Ç** simgesi belirir. Göremiyorsan `^` okunun arkasındaki gizli simgelere bak.
 3. Otomatik Çeviri **kapalı** başlar ve simge **gridir**. Açmak için **`Ctrl+Shift+Y`**'ye bas ya da simgeye sol tıkla. Simge **yeşile** döner ve kısa, ince bir bip sesi duyarsın. Kapatınca daha kalın bir bip duyulur.
 4. **Hedef dili** seçmek için simgeye sağ tıkla. Varsayılan dil İngilizce.
@@ -93,7 +103,7 @@ Aynı anda uygulamanın yalnızca bir kopyası çalışabilir. İkinci kez açma
 
 ## Kullanım
 
-İki çeviri modu var. İkisi de varsayılan olarak açıktır. Her birini tepsi menüsünde ya da Ayarlar'da **Çeviri modu** altından ayrı ayrı açıp kapatabilirsin.
+İki çeviri modu var ve aynı anda yalnızca biri seçili olabilir. Varsayılan mod **Enter'a basınca otomatik çevir**. Modu tepsi menüsünde ya da Ayarlar'da **Çeviri modu** altından değiştirebilirsin.
 
 ### Enter'a basınca otomatik çevir
 
@@ -266,14 +276,24 @@ Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata a
 | `arayuz/tema.py` | Açık/koyu/sistem teması: renkler, başlık çubuğu, tepsi menüsü |
 | `arayuz/ayarlar_penceresi.py` | Ayarlar penceresi |
 | `arayuz/hakkinda_penceresi.py` | Hakkında penceresi |
+| `arayuz/logo.py` | Uygulama simgesi (tepsi, pencereler ve `.exe` için tek çizim) |
+| `derleme/derle.py` | Windows sürümünü derler (PyInstaller) |
 | `baslat.bat` | Uygulamayı konsol penceresi olmadan başlatır |
 | `requirements.txt` | Python bağımlılıkları |
 
 **Yeni bir arayüz dili eklemek için:** `cekirdek/metinler.py` içindeki `METINLER` ve `DIL_ADLARI`'na, mevcut dillerle aynı anahtarlara sahip yeni bir blok ekle. Sonra dil kodunu `ARAYUZ_DILLERI`'ne, dilin kendi dilindeki adını da `ARAYUZ_DILI_ADLARI`'na ekle.
 
+### Derleme
+
+```bash
+pip install -r derleme/gereksinimler.txt
+python derleme/derle.py
+```
+
+Çıktı `dist/OtoCeviri/` klasörü ve yayınlanmaya hazır `dist/OtoCeviri-<sürüm>.zip` dosyasıdır. Sürüm numarası `cekirdek/surum.py`'den alınır ve `.exe`'nin özelliklerine de yazılır. Paket, tek dosya (`--onefile`) yerine klasör olarak derlenir: böylece her açılışta geçici klasöre açılmaz, anında başlar.
+
 ## Yol haritası
 
-- Tek başına çalışan `.exe` (Python kurulumu gerektirmeden)
 - Gelen mesajları okuma: yabancı dildeki bir mesajı seç, kendi dilinde gör
 - Programa göre farklı hedef dil (ör. Discord'da İngilizce, WhatsApp'ta Almanca)
 - Bağlamı daha iyi anlayan, daha doğal çeviriler yapan isteğe bağlı bir yapay zeka çeviri motoru

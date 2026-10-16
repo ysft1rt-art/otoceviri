@@ -19,9 +19,9 @@ import winsound
 import keyboard
 import pyperclip
 import pystray
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
-from arayuz import ayarlar_penceresi, hakkinda_penceresi, pencere, tema
+from arayuz import ayarlar_penceresi, hakkinda_penceresi, logo, pencere, tema
 from cekirdek import baslangic, ceviri, kisayollar, metinler
 from cekirdek.kisayollar import DEGISTIRICILER
 from cekirdek.metinler import t
@@ -467,17 +467,7 @@ class OtoCeviri:
 
     def simge_resmi(self, aktif: bool | None = None) -> Image.Image:
         """aktif verilmezse uygulamanın o anki durumuna göre (yeşil/gri) çizilir."""
-        aktif = self.aktif if aktif is None else aktif
-        renk = (34, 160, 90) if aktif else (120, 120, 120)
-        resim = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        ciz = ImageDraw.Draw(resim)
-        ciz.rounded_rectangle((2, 2, 62, 62), radius=14, fill=renk)
-        try:
-            yazi_tipi = ImageFont.truetype("segoeuib.ttf", 40)
-        except OSError:
-            yazi_tipi = ImageFont.load_default()
-        ciz.text((32, 33), "Ç", font=yazi_tipi, fill="white", anchor="mm")
-        return resim
+        return logo.ciz(self.aktif if aktif is None else aktif)
 
     def _ipucu(self) -> str:
         return t("ipucu", durum=self._durum(), dil=metinler.dil_adi(self.ayarlar["hedef_dil"]))

@@ -4,3 +4,7 @@ __pycache__/
 
 # Kişisel ayarlar; ilk açılışta koddaki varsayılanlardan oluşturulur.
 ayarlar.json
+
+# Derleme çıktıları (python derleme/derle.py)
+build/
+dist/
