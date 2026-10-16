@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.log
+
+# Kişisel ayarlar; ilk açılışta koddaki varsayılanlardan oluşturulur.
+ayarlar.json
