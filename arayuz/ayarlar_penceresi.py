@@ -31,6 +31,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
 
         self.ceviri_modu = tk.StringVar(value=a["ceviri_modu"])
         self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
+        self.ceviri_sesi = tk.BooleanVar(value=a["ceviri_sesi"])
         self.windows_acilisi = tk.BooleanVar(value=baslangic.acik_mi())
         self.tema = tk.StringVar(value=a["tema"])
         self.kisayol = {k: a[k] for k, _, _ in KISAYOL_ALANLARI}
@@ -63,6 +64,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
         for satir, (degisken, ikon, yazi) in enumerate([
             (self.acilista_aktif, "guc", t("acilista_aktif")),
             (self.windows_acilisi, "bilgisayar", t("windows_acilisi")),
+            (self.ceviri_sesi, "ses", t("ceviri_sesi")),
         ], start=3):
             ttk.Checkbutton(genel, variable=degisken, **self.ikonlu(ikon, yazi)).grid(
                 row=satir, column=0, columnspan=2, sticky="w", pady=1
@@ -229,6 +231,7 @@ class AyarlarPenceresi(pencere.TemaliPencere):
             arayuz_dili=metinler.ARAYUZ_DILLERI[self.arayuz_kutusu.current()],
             ceviri_modu=self.ceviri_modu.get(),
             acilista_aktif=self.acilista_aktif.get(),
+            ceviri_sesi=self.ceviri_sesi.get(),
             tema=self.tema.get(),
             enter_haric_programlar=haric,
             **self.kisayol,

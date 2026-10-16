@@ -22,7 +22,7 @@ import pystray
 from PIL import Image
 
 from arayuz import ayarlar_penceresi, hakkinda_penceresi, logo, pencere, tema, tepsi
-from cekirdek import baslangic, ceviri, guncelleme, kisayollar, metinler
+from cekirdek import baslangic, ceviri, guncelleme, kisayollar, metinler, ses
 from cekirdek.kisayollar import DEGISTIRICILER
 from cekirdek.metinler import t
 
@@ -42,6 +42,7 @@ VARSAYILAN_AYARLAR = {
     "cevir_kisayolu": "ctrl+shift+u",
     "geri_al_kisayolu": "ctrl+shift+z",
     "acilista_aktif": False,
+    "ceviri_sesi": True,  # çeviri yapılınca kısa bir ses çal
     "tema": "sistem",  # sistem / acik / koyu
     "arayuz_dili": "sistem",  # sistem / tr / en
     # Bu programlarda Enter normal çalışır (belge/tablo/terminal bozulmasın diye).
@@ -417,6 +418,10 @@ class OtoCeviri:
             winsound.MessageBeep(winsound.MB_ICONHAND)
             return False, None
 
+    def _ceviri_sesi(self):
+        if self.ayarlar["ceviri_sesi"]:
+            ses.ceviri_sesi()
+
     def _enter_isle(self):
         with self._mesgul:
             self._son_ceviri = None  # gönderilen mesaj geri alınamaz
@@ -434,6 +439,7 @@ class OtoCeviri:
                     return
                 if yeni:
                     self._degistir(yeni)
+                    self._ceviri_sesi()
                 else:
                     self._tus_gonder("end")
                 self._enter_gonder()
@@ -454,6 +460,7 @@ class OtoCeviri:
                 basarili, yeni = self._cevir(metin)
                 if basarili and yeni:
                     self._degistir(yeni)
+                    self._ceviri_sesi()
                     self._son_ceviri = {
                         "pencere": on_plandaki_pencere(),
                         "orijinal": metin,

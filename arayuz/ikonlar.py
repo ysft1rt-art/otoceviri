@@ -17,6 +17,7 @@ GLIFLER = {
     "klavye": "\ue765",
     "enter": "\ue751",
     "bilgisayar": "\ue7f4",
+    "ses": "\ue767",           # hoparlör
     "ayarlar": "\ue713",
     "bilgi": "\ue946",
     "cikis": "\ue711",
