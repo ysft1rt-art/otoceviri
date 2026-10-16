@@ -22,6 +22,8 @@ import pystray
 from PIL import Image, ImageDraw, ImageFont
 
 import ayarlar_penceresi
+import hakkinda_penceresi
+import pencere
 import baslangic
 import ceviri
 import kisayollar
@@ -462,8 +464,10 @@ class OtoCeviri:
 
     # ---- tepsi simgesi
 
-    def simge_resmi(self) -> Image.Image:
-        renk = (34, 160, 90) if self.aktif else (120, 120, 120)
+    def simge_resmi(self, aktif: bool | None = None) -> Image.Image:
+        """aktif verilmezse uygulamanın o anki durumuna göre (yeşil/gri) çizilir."""
+        aktif = self.aktif if aktif is None else aktif
+        renk = (34, 160, 90) if aktif else (120, 120, 120)
         resim = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         ciz = ImageDraw.Draw(resim)
         ciz.rounded_rectangle((2, 2, 62, 62), radius=14, fill=renk)
@@ -552,12 +556,13 @@ class OtoCeviri:
                 checked=lambda _: baslangic.acik_mi(),
             ),
             pystray.MenuItem(lambda _: t("menu_ayarlar"), lambda *_: ayarlar_penceresi.ac(self)),
+            pystray.MenuItem(lambda _: t("menu_hakkinda"), lambda *_: hakkinda_penceresi.ac(self)),
             pystray.MenuItem(lambda _: t("menu_cikis"), self._cikis),
         )
 
     def _cikis(self, *_):
         keyboard.unhook_all()
-        ayarlar_penceresi.kapat()
+        pencere.kapat()
         self.simge.stop()
 
     def calistir(self):

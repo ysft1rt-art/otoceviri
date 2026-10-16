@@ -1,27 +1,17 @@
-"""Ayarlar penceresi (tkinter).
+"""Ayarlar penceresi. Tk iş parçacığı ve tema altyapısı pencere.py'de."""
 
-Tepsi menüsü ana iş parçacığını kullandığı için Tk kendi iş parçacığında çalışır.
-Bu iş parçacığı uygulama boyunca yaşar ve tek bir gizli kök pencere tutar; ayarlar
-penceresi her seferinde onun alt penceresi (Toplevel) olarak açılır. Tk'yi her
-açılışta yeni bir iş parçacığında kurup yıkmak, Tk nesneleri başka bir iş
-parçacığında çöpe gidince Tcl'i (tcl86t.dll) çökertiyordu.
-"""
-
-import gc
 import logging
-import queue
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 import keyboard
-from PIL import ImageTk
 
 import baslangic
 import ceviri
 import kisayollar
 import metinler
-import tema
+import pencere
 from metinler import t
 
 KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı)
@@ -30,79 +20,16 @@ KISAYOL_ALANLARI = [  # (ayar anahtarı, metin anahtarı)
     ("geri_al_kisayolu", "kisayol_geri_al"),
 ]
 
-_istekler = queue.Queue()
-_tk_baslat = threading.Lock()
-_tk_is_parcacigi = None
-_acik_pencere = None
-
 
 def ac(uygulama):
     """Herhangi bir iş parçacığından çağrılabilir."""
-    global _tk_is_parcacigi
-    with _tk_baslat:
-        if _tk_is_parcacigi is None:
-            _tk_is_parcacigi = threading.Thread(target=_tk_dongusu, daemon=True)
-            _tk_is_parcacigi.start()
-    _istekler.put(uygulama)
+    pencere.ac(AyarlarPenceresi, uygulama)
 
 
-def kapat():
-    """Uygulamadan çıkarken çağrılır: Tk döngüsünü kendi iş parçacığında durdurur.
-    Yoksa Python, Tk iş parçacığı yaşarken kapanmaya çalışıp takılıyor."""
-    with _tk_baslat:
-        is_parcacigi = _tk_is_parcacigi
-    if is_parcacigi is not None and is_parcacigi.is_alive():
-        _istekler.put(None)
-        is_parcacigi.join(timeout=2)
-
-
-def _tk_dongusu():
-    global _acik_pencere
-    kok = tk.Tk()
-    kok.withdraw()
-
-    def istekleri_isle():
-        try:
-            while True:
-                istek = _istekler.get_nowait()
-                if istek is None:
-                    kok.quit()
-                    return
-                _goster(kok, istek)
-        except queue.Empty:
-            pass
-        except Exception:
-            logging.exception("Ayarlar penceresi açılamadı")
-        kok.after(100, istekleri_isle)
-
-    kok.after(0, istekleri_isle)
-    kok.mainloop()
-    # Tk nesneleri (pencere, değişkenler, resimler) bu iş parçacığında temizlensin;
-    # başka iş parçacığında çöpe giderlerse Tcl "wrong thread" diye çöküyor.
-    _acik_pencere = None
-    kok.destroy()
-    del kok
-    gc.collect()
-
-
-def _goster(kok, uygulama):
-    global _acik_pencere
-    if _acik_pencere is not None and _acik_pencere.winfo_exists():
-        _acik_pencere.one_getir()  # zaten açık
-        return
-    _acik_pencere = AyarlarPenceresi(kok, uygulama)
-
-
-class AyarlarPenceresi(tk.Toplevel):
+class AyarlarPenceresi(pencere.TemaliPencere):
     def __init__(self, kok, uygulama):
-        super().__init__(kok)
-        self.uygulama = uygulama
+        super().__init__(kok, uygulama, t("pencere_basligi"))
         a = uygulama.ayarlar
-
-        self.title(t("pencere_basligi"))
-        self.resizable(False, False)
-        self._simge = ImageTk.PhotoImage(uygulama.simge_resmi())
-        self.iconphoto(True, self._simge)
 
         self.dil = tk.StringVar(value=metinler.dil_adi(a["hedef_dil"]))
         self.arayuz_dili = tk.StringVar(value=a["arayuz_dili"])
@@ -116,7 +43,6 @@ class AyarlarPenceresi(tk.Toplevel):
             k: tk.StringVar(value=kisayollar.goster(a[k])) for k, _ in KISAYOL_ALANLARI
         }
         self._kaydediliyor = False
-        self._uygulanan_koyu = None
 
         govde = ttk.Frame(self, padding=16)
         govde.grid(sticky="nsew")
@@ -206,71 +132,12 @@ class AyarlarPenceresi(tk.Toplevel):
         self.kaydet_dugmesi = ttk.Button(dugmeler, text=t("kaydet"), command=self._kaydet)
         self.kaydet_dugmesi.grid(row=0, column=1)
 
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.update_idletasks()
-        self._temayi_uygula()
-        g, y = self.winfo_width(), self.winfo_height()
-        x = (self.winfo_screenwidth() - g) // 2
-        yy = (self.winfo_screenheight() - y) // 3
-        self.geometry(f"+{x}+{yy}")
-        self.one_getir()
-        self.after(1500, self._sistem_temasini_izle)
+        self.goster()
 
-    # ---- tema
+    def tema_secimi(self) -> str:
+        return self.tema.get()  # kaydetmeden önce önizleme
 
-    def _sistem_temasini_izle(self):
-        """'Sistem' seçiliyken Windows teması değişirse pencere de değişsin."""
-        if self.tema.get() == "sistem":
-            self._temayi_uygula()
-        self.after(1500, self._sistem_temasini_izle)
-
-    def _temayi_uygula(self):
-        koyu = tema.koyu_mu(self.tema.get())
-        if koyu == self._uygulanan_koyu:
-            return
-        self._uygulanan_koyu = koyu
-        r = tema.RENKLER[koyu]
-        stil = ttk.Style(self)
-        if koyu:
-            # 'vista' teması Windows'un kendi çizimini kullanır ve renklendirilemez.
-            stil.theme_use("clam")
-            stil.configure(".", background=r["zemin"], foreground=r["yazi"],
-                           fieldbackground=r["alan"], bordercolor=r["kenar"],
-                           lightcolor=r["zemin"], darkcolor=r["zemin"],
-                           troughcolor=r["zemin"], focuscolor=r["vurgu"],
-                           selectbackground=r["vurgu"], selectforeground="#ffffff",
-                           insertcolor=r["yazi"], arrowcolor=r["yazi"])
-            stil.configure("TLabelframe", background=r["zemin"], bordercolor=r["kenar"])
-            stil.configure("TLabelframe.Label", background=r["zemin"], foreground=r["yazi"])
-            stil.configure("TButton", background=r["dugme"], lightcolor=r["dugme"],
-                           darkcolor=r["dugme"], padding=(10, 3))
-            stil.map("TButton",
-                     background=[("disabled", r["zemin"]), ("pressed", r["kenar"]),
-                                 ("active", r["dugme_uzerinde"])],
-                     foreground=[("disabled", r["soluk"])])
-            for tur in ("TCheckbutton", "TRadiobutton"):
-                stil.configure(tur, indicatorbackground=r["alan"],
-                               indicatorforeground="#ffffff", upperbordercolor=r["kutu_kenari"],
-                               lowerbordercolor=r["kutu_kenari"])
-                stil.map(tur, background=[("active", r["zemin"])],
-                         indicatorbackground=[("selected", r["vurgu"]), ("active", r["kenar"])])
-            stil.map("TEntry", fieldbackground=[("readonly", r["alan"])])
-            stil.map("TCombobox",
-                     fieldbackground=[("readonly", r["alan"])],
-                     selectbackground=[("readonly", r["alan"])],
-                     selectforeground=[("readonly", r["yazi"])],
-                     background=[("active", r["dugme_uzerinde"]), ("!active", r["dugme"])])
-            for tur in ("Vertical.TScrollbar", "Horizontal.TScrollbar"):
-                stil.configure(tur, background=r["kaydirma"], troughcolor=r["alan"],
-                               bordercolor=r["alan"], lightcolor=r["kaydirma"],
-                               darkcolor=r["kaydirma"], arrowcolor=r["yazi"], gripcount=0)
-                stil.map(tur, background=[("active", r["soluk"])])
-        else:
-            stil.theme_use("vista" if "vista" in stil.theme_names() else "default")
-        stil.configure("Soluk.TLabel", foreground=r["soluk"])
-        stil.configure("Hata.TLabel", foreground=r["hata"])
-
-        self.configure(background=r["zemin"])
+    def _tema_ozel(self, r):
         self.haric_kutusu.configure(
             background=r["alan"], foreground=r["yazi"], insertbackground=r["yazi"],
             selectbackground=r["vurgu"], selectforeground="#ffffff",
@@ -282,23 +149,10 @@ class AyarlarPenceresi(tk.Toplevel):
                          "-selectbackground", r["vurgu"], "-selectforeground", "#ffffff")
         except tk.TclError:
             pass
-        tema.baslik_cubugu(int(self.wm_frame(), 16), koyu)
 
     def destroy(self):
-        global _acik_pencere
         self.uygulama.kayit_modu = False  # kayıt sürerken kapatılırsa kancalar susmuş kalmasın
-        kok = self.master
         super().destroy()
-        if _acik_pencere is self:
-            _acik_pencere = None
-        kok.after_idle(gc.collect)  # pencerenin Tk nesneleri bu iş parçacığında temizlensin
-
-    def one_getir(self):
-        self.deiconify()
-        self.lift()
-        self.attributes("-topmost", True)
-        self.after(300, lambda: self.attributes("-topmost", False))
-        self.focus_force()
 
     # ---- kısayol kaydı
 

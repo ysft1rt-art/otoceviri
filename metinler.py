@@ -23,6 +23,7 @@ METINLER = {
         "mod_enter": "Enter'a basınca otomatik çevir",
         "windows_acilisi": "Windows açılışında başlat",
         "menu_ayarlar": "Ayarlar…",
+        "menu_hakkinda": "Hakkında",
         "menu_cikis": "Çıkış",
         # Bildirimler
         "bildirim_basladi": "Çalışıyor. {kisayol} ile aç/kapat ya da simgeye tıkla.",
@@ -56,6 +57,20 @@ METINLER = {
         "kisayol_hata_tus": "Bir harf ya da tuş ile birlikte Ctrl/Alt/Win kullan (ör. Ctrl+Shift+U).",
         "kisayol_hata_degistirici": "Kısayol Ctrl, Alt ya da Win tuşu içermeli; yoksa yazı yazmayı engeller.",
         "kisayol_hata_taninmadi": "'{tus}' tuşu tanınmadı.",
+        # Hakkında penceresi
+        "hakkinda_basligi": "OtoÇeviri Hakkında",
+        "surum": "Sürüm {surum}",
+        "aciklama": "Yazdığın metni, yazım tarzını bozmadan seçtiğin dile çevirir.",
+        "kaynak_kodu": "Kaynak kodu:",
+        "lisans": "MIT Lisansı ile yayınlanmıştır.",
+        "sorumluluk_baslik": "Sorumluluk reddi",
+        "sorumluluk_metni": (
+            "OtoÇeviri bağımsız bir projedir. Google ile bir bağlantısı yoktur, Google "
+            "tarafından onaylanmamış ya da desteklenmemiştir. \"Google Translate\", Google "
+            "LLC'nin ticari markasıdır. Ücretsiz web adresi kişisel ve ticari olmayan "
+            "kullanım için kullanılır. Sorumlu bir şekilde ve kendi sorumluluğunda kullan."
+        ),
+        "kapat": "Kapat",
     },
     "en": {
         "acik": "ON",
@@ -69,6 +84,7 @@ METINLER = {
         "mod_enter": "Translate automatically on Enter",
         "windows_acilisi": "Start with Windows",
         "menu_ayarlar": "Settings…",
+        "menu_hakkinda": "About",
         "menu_cikis": "Exit",
         "bildirim_basladi": "Running. Press {kisayol} or click the icon to turn it on/off.",
         "bildirim_ceviri_hatasi": "Translation failed. Check your internet connection.",
@@ -99,6 +115,19 @@ METINLER = {
         "kisayol_hata_tus": "Use one letter or key together with Ctrl/Alt/Win (e.g. Ctrl+Shift+U).",
         "kisayol_hata_degistirici": "The hotkey must include Ctrl, Alt or Win; otherwise it would block typing.",
         "kisayol_hata_taninmadi": "The key '{tus}' wasn't recognized.",
+        "hakkinda_basligi": "About OtoÇeviri",
+        "surum": "Version {surum}",
+        "aciklama": "Translates what you type into the language you choose, keeping your writing style.",
+        "kaynak_kodu": "Source code:",
+        "lisans": "Released under the MIT License.",
+        "sorumluluk_baslik": "Disclaimer",
+        "sorumluluk_metni": (
+            "OtoÇeviri is an independent project. It is not affiliated with, endorsed by or "
+            "sponsored by Google. \"Google Translate\" is a trademark of Google LLC. The free "
+            "web endpoint is used for personal, non-commercial use. Use it responsibly and "
+            "at your own risk."
+        ),
+        "kapat": "Close",
     },
 }
 

@@ -179,6 +179,10 @@ Tepsi simgesine sağ tıklayıp **Ayarlar…**'ı seç. Değişiklikler **Kaydet
 
 Her satıra bir program yaz, ör. `excel.exe`. Sonuna `.exe` yazmazsan otomatik eklenir. Bir programın adını öğrenmek için Görev Yöneticisi'ni aç, programa sağ tıkla ve **Ayrıntılara git**'i seç.
 
+### Hakkında
+
+Tepsi simgesine sağ tıklayıp **Hakkında**'yı seçersen sürüm numarasını, bu GitHub sayfasının bağlantısını, lisansı ve sorumluluk reddini görürsün. Kapatmak için `Esc`'ye, `Enter`'a ya da **Kapat**'a bas.
+
 ## Kısayollar
 
 | İşlem | Varsayılan | Ne zaman çalışır |
@@ -247,7 +251,7 @@ Ayarlar → Kısayollar'dan başka bir kombinasyon seç.
 Çeviriden sonra metin ya da imlecin yeri değişmiş. Programın kendi `Ctrl+Z`'sini kullan.
 
 **Uygulama kapandı ya da garip davranıyor.**
-Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata ayrıntıları var. Bir issue açıp bu dosyayı eklersen sevinirim.
+Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata ayrıntıları var. Bir issue açıp bu dosyayı ve **Hakkında** penceresindeki sürüm numarasını eklersen sevinirim.
 
 ## Proje yapısı
 
@@ -255,7 +259,10 @@ Uygulama klasöründeki `otoceviri.log` dosyasına bak, içinde yalnızca hata a
 |---|---|
 | `otoceviri.py` | Ana uygulama: tepsi simgesi, klavye kancaları, Enter/kısayol/geri alma mantığı |
 | `ceviri.py` | Google Çeviri istemcisi (IPv4, yedek adres) ve tarz koruma. Test için tek başına çalıştırılabilir. |
-| `ayarlar_penceresi.py` | Ayarlar penceresi (Tkinter, kendi iş parçacığında çalışır) |
+| `ayarlar_penceresi.py` | Ayarlar penceresi |
+| `hakkinda_penceresi.py` | Hakkında penceresi |
+| `pencere.py` | Pencerelerin ortak kodu: Tkinter iş parçacığı ve temalı pencere temel sınıfı |
+| `surum.py` | Sürüm numarası ve GitHub bağlantısı |
 | `metinler.py` | Türkçe ve İngilizce arayüz metinleri |
 | `kisayollar.py` | Kısayolları okuma, doğrulama ve gösterme |
 | `tema.py` | Açık/koyu/sistem teması: renkler, başlık çubuğu, tepsi menüsü |

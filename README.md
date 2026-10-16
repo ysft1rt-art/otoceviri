@@ -179,6 +179,10 @@ Click **Change**, then press the new key combination. Press `Esc` to cancel. A h
 
 One program per line, such as `excel.exe`. `.exe` is added automatically if you leave it out. To find a program's name, open Task Manager, right-click the app and choose **Go to details**.
 
+### About
+
+Right-click the tray icon and choose **About** to see the version number, a link to this GitHub page, the license and the disclaimer. Press `Esc`, `Enter` or **Close** to close it.
+
 ## Hotkeys
 
 | Action | Default | When it is active |
@@ -247,7 +251,7 @@ Pick a different combination in Settings → Hotkeys.
 The text or the cursor position changed after the translation. Use the app's own `Ctrl+Z`.
 
 **The app closed or behaves oddly.**
-Look at `otoceviri.log` in the app folder. It contains error details only. You're welcome to open an issue and attach it.
+Look at `otoceviri.log` in the app folder. It contains error details only. You're welcome to open an issue and attach it, along with the version number shown in the **About** window.
 
 ## Project structure
 
@@ -255,7 +259,10 @@ Look at `otoceviri.log` in the app folder. It contains error details only. You'r
 |---|---|
 | `otoceviri.py` | Main app: tray icon, keyboard hooks, Enter/hotkey/undo logic |
 | `ceviri.py` | Google Translate client (IPv4, fallback host) and style preservation. Can be run on its own for testing. |
-| `ayarlar_penceresi.py` | Settings window (Tkinter, runs in its own thread) |
+| `ayarlar_penceresi.py` | Settings window |
+| `hakkinda_penceresi.py` | About window |
+| `pencere.py` | Shared window code: the Tkinter thread and the themed window base class |
+| `surum.py` | Version number and GitHub link |
 | `metinler.py` | Interface texts in Turkish and English |
 | `kisayollar.py` | Hotkey parsing, validation and display |
 | `tema.py` | Light/dark/system theme: colors, title bar, tray menu |
