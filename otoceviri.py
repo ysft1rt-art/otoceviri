@@ -22,7 +22,7 @@ import pystray
 from PIL import Image
 
 from arayuz import ayarlar_penceresi, hakkinda_penceresi, logo, pencere, tema
-from cekirdek import baslangic, ceviri, kisayollar, metinler
+from cekirdek import baslangic, ceviri, guncelleme, kisayollar, metinler
 from cekirdek.kisayollar import DEGISTIRICILER
 from cekirdek.metinler import t
 
@@ -176,6 +176,7 @@ def pano_yaz(metin: str):
 # ---------------------------------------------------------------- Uygulama
 
 GERI_AL_SURESI = 300  # saniye; bundan eski çeviriler geri alınamaz
+GUNCELLEME_ARALIGI = 24 * 3600  # saniye; yeni sürüm ne sıklıkla denetlenir
 
 
 class OtoCeviri:
@@ -187,6 +188,7 @@ class OtoCeviri:
         self._mesgul = threading.Lock()
         self._kisayol_kaldiricilar = []
         self._son_ceviri = None  # geri alma için: {pencere, orijinal, ceviri, zaman}
+        self.guncelleme = None  # daha yeni sürüm yayınlandıysa guncelleme.Guncelleme
         self.simge = None
 
     # ---- ayarlar
@@ -247,6 +249,31 @@ class OtoCeviri:
             if simdiki != onceki and self.ayarlar["tema"] == "sistem":
                 tema.menu_temasi("sistem")
             onceki = simdiki
+
+    # ---- güncelleme
+
+    def _guncellemeleri_izle(self):
+        """Açılıştan kısa süre sonra ve günde bir yeni sürüm var mı diye bakar.
+        Yalnızca menüye haber verir; kurulum Hakkında penceresindeki butonla yapılır."""
+        time.sleep(10)
+        while True:
+            try:
+                self.guncelleme_bulundu(guncelleme.denetle())
+            except guncelleme.GuncellemeHatasi:
+                pass  # internet yoksa sessizce bir sonrakini bekle
+            time.sleep(GUNCELLEME_ARALIGI)
+
+    def guncelleme_bulundu(self, yeni):
+        if yeni != self.guncelleme:
+            self.guncelleme = yeni
+            self._simgeyi_guncelle()
+
+    def guncellemeyi_kur(self, yeni, ilerleme=None):
+        """Hakkında penceresinden (Tk dışı iş parçacığında) çağrılır: indirir, kurucuyu
+        başlatır ve uygulamayı kapatır; yeni sürüm kendiliğinden açılır."""
+        guncelleme.indir_ve_baslat(yeni, ilerleme)
+        # Tk iş parçacığı kendini bekleyemeyeceği için çıkış ayrı iş parçacığında.
+        threading.Thread(target=self._cikis, daemon=True).start()
 
     # ---- açma / kapama
 
@@ -527,6 +554,11 @@ class OtoCeviri:
         ]
         return pystray.Menu(
             pystray.MenuItem(
+                lambda _: t("menu_guncelleme_mevcut"), lambda *_: hakkinda_penceresi.ac(self),
+                visible=lambda _: self.guncelleme is not None,
+            ),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(
                 lambda _: t("menu_otomatik", durum=self._durum(),
                             kisayol=g(self.ayarlar["ac_kapa_kisayolu"])),
                 self.ac_kapa, default=True,
@@ -570,6 +602,8 @@ class OtoCeviri:
         tema.menu_temasi(self.ayarlar["tema"])
         threading.Thread(target=self._sistem_temasini_izle, daemon=True).start()
         threading.Thread(target=ceviri.isit, daemon=True).start()
+        threading.Thread(target=self._guncellemeleri_izle, daemon=True).start()
+        threading.Thread(target=guncelleme.artiklari_temizle, daemon=True).start()
         keyboard.on_press(self._tusa_basildi)
         keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
         self.kisayollari_kur()
@@ -587,6 +621,10 @@ class OtoCeviri:
 
 
 def main():
+    # Güncelleme: geçici klasördeki yeni sürüm, eskisinin yerine kendini kurar.
+    if len(sys.argv) == 4 and sys.argv[1] == guncelleme.KUR_ARGUMANI:
+        guncelleme.kur(sys.argv[2], int(sys.argv[3]))
+        return
     kilit = tek_ornek_kilidi()
     if kilit is None:
         ctypes.windll.user32.MessageBoxW(None, t("zaten_calisiyor"), "OtoÇeviri", 0x40)

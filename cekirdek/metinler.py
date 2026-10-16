@@ -23,6 +23,7 @@ METINLER = {
         "mod_enter": "Enter'a basınca otomatik çevir",
         "windows_acilisi": "Windows açılışında başlat",
         "menu_ayarlar": "Ayarlar…",
+        "menu_guncelleme_mevcut": "Bir güncelleme mevcut!",
         "menu_hakkinda": "Hakkında",
         "menu_cikis": "Çıkış",
         # Bildirimler
@@ -70,6 +71,16 @@ METINLER = {
             "LLC'nin ticari markasıdır. Ücretsiz web adresi kişisel ve ticari olmayan "
             "kullanım için kullanılır. Sorumlu bir şekilde ve kendi sorumluluğunda kullan."
         ),
+        "guncelleme_denetle": "Güncellemeleri denetle",
+        "guncelleme_denetleniyor": "Denetleniyor…",
+        "guncelleme_yok": "OtoÇeviri güncel.",
+        "guncelleme_var": "Yeni sürüm mevcut: {surum}",
+        "guncelleme_indiriliyor": "Sürüm {surum} indiriliyor… %{yuzde}",
+        "guncelleme_yeniden_baslatiliyor": "Kuruluyor. OtoÇeviri birkaç saniye içinde yeniden açılacak.",
+        "guncelleme_kaynak": "Sürüm {surum} yayınlandı. Kaynak koddan çalıştırdığın için GitHub'dan indir.",
+        "guncelleme_hata_ag": "Güncelleme sunucusuna ulaşılamadı. İnternet bağlantını kontrol et.",
+        "guncelleme_hata_bozuk": "İndirilen güncelleme bozuk; hiçbir şey değiştirilmedi.",
+        "guncelleme_hata_yazma": "OtoÇeviri'nin klasörüne yazılamıyor. Güncellemeyi GitHub'dan elle indir.",
         "kapat": "Kapat",
     },
     "en": {
@@ -84,6 +95,7 @@ METINLER = {
         "mod_enter": "Translate automatically on Enter",
         "windows_acilisi": "Start with Windows",
         "menu_ayarlar": "Settings…",
+        "menu_guncelleme_mevcut": "An update is available!",
         "menu_hakkinda": "About",
         "menu_cikis": "Exit",
         "bildirim_basladi": "Running. Press {kisayol} or click the icon to turn it on/off.",
@@ -127,6 +139,16 @@ METINLER = {
             "web endpoint is used for personal, non-commercial use. Use it responsibly and "
             "at your own risk."
         ),
+        "guncelleme_denetle": "Check for updates",
+        "guncelleme_denetleniyor": "Checking…",
+        "guncelleme_yok": "OtoÇeviri is up to date.",
+        "guncelleme_var": "New version available: {surum}",
+        "guncelleme_indiriliyor": "Downloading version {surum}… {yuzde}%",
+        "guncelleme_yeniden_baslatiliyor": "Installing. OtoÇeviri will restart in a few seconds.",
+        "guncelleme_kaynak": "Version {surum} is out. You're running from source, so download it from GitHub.",
+        "guncelleme_hata_ag": "Couldn't reach the update server. Check your internet connection.",
+        "guncelleme_hata_bozuk": "The downloaded update was damaged; nothing was changed.",
+        "guncelleme_hata_yazma": "Can't write to OtoÇeviri's folder. Download the update from GitHub manually.",
         "kapat": "Close",
     },
 }

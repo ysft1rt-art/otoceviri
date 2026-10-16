@@ -36,7 +36,7 @@ class CeviriHatasi(Exception):
     pass
 
 
-class _IPv4HTTPSBaglantisi(http.client.HTTPSConnection):
+class IPv4HTTPSBaglantisi(http.client.HTTPSConnection):
     """Bazı ağlarda Google'a IPv6 ile TLS bağlantısı kopuyor; IPv4 kullan."""
 
     def connect(self):
@@ -77,7 +77,7 @@ class _KaliciBaglanti:
 
     def _ac(self, zaman_asimi: float):
         self._kapat()
-        baglanti = _IPv4HTTPSBaglantisi(self.sunucu, timeout=zaman_asimi, context=_SSL_BAGLAMI)
+        baglanti = IPv4HTTPSBaglantisi(self.sunucu, timeout=zaman_asimi, context=_SSL_BAGLAMI)
         baglanti.connect()
         self._baglanti = baglanti
         self._son_kullanim = time.monotonic()

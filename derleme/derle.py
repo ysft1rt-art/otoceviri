@@ -3,6 +3,10 @@
 Kullanım (proje kökünden):
     pip install -r derleme/gereksinimler.txt
     python derleme/derle.py
+
+Yayınlarken: cekirdek/surum.py'deki sürümü artır, GitHub'da o sürümün etiketiyle bir
+release aç ve zip'i adını değiştirmeden yükle. Uygulama içi güncelleme en son
+release'te OtoCeviri-<sürüm>.zip adlı dosyayı arar.
 """
 
 import os
