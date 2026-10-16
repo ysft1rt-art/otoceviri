@@ -2,6 +2,7 @@
 
 Enter modu : Açıkken Enter'a bastığında yazı kutusundaki metin çevrilir ve gönderilir.
 Kısayol modu: Kısayola bastığında seçili metin (seçim yoksa kutunun tamamı) çevrilir.
+Geri al     : Kısayol modundaki son çeviriyi orijinal metne döndürür.
 """
 
 import ctypes
@@ -9,10 +10,10 @@ import ctypes.wintypes as wt
 import json
 import logging
 import os
-import subprocess
 import sys
 import threading
 import time
+import unicodedata
 import winsound
 
 import keyboard
@@ -20,7 +21,11 @@ import pyperclip
 import pystray
 from PIL import Image, ImageDraw, ImageFont
 
+import ayarlar_penceresi
+import baslangic
 import ceviri
+import kisayollar
+from kisayollar import DEGISTIRICILER
 
 if getattr(sys, "frozen", False):
     UYGULAMA_DIZINI = os.path.dirname(sys.executable)
@@ -36,6 +41,7 @@ VARSAYILAN_AYARLAR = {
     "kisayol_modu": True,
     "ac_kapa_kisayolu": "ctrl+shift+y",
     "cevir_kisayolu": "ctrl+shift+u",
+    "geri_al_kisayolu": "ctrl+shift+z",
     "acilista_aktif": False,
     # Bu programlarda Enter normal çalışır (belge/tablo/terminal bozulmasın diye).
     # Kısayol modu bunlarda da çalışır.
@@ -64,19 +70,26 @@ _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _kernel32.OpenProcess.restype = wt.HANDLE
 _kernel32.CreateMutexW.restype = wt.HANDLE
 _user32.GetForegroundWindow.restype = wt.HWND
-DEGISTIRICILER = ("ctrl", "shift", "alt", "windows")
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 ERROR_ALREADY_EXISTS = 183
 
 
+def on_plandaki_pencere() -> int:
+    return _user32.GetForegroundWindow() or 0
+
+
+def on_plandaki_pid() -> int:
+    pid = wt.DWORD()
+    _user32.GetWindowThreadProcessId(on_plandaki_pencere(), ctypes.byref(pid))
+    return pid.value
+
+
 def on_plandaki_program() -> str:
     """Odaktaki pencerenin program adını (ör. 'discord.exe') döndürür."""
-    hwnd = _user32.GetForegroundWindow()
-    if not hwnd:
+    pid = on_plandaki_pid()
+    if not pid:
         return ""
-    pid = wt.DWORD()
-    _user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-    h = _kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid.value)
+    h = _kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
     if not h:
         return ""
     try:
@@ -87,6 +100,19 @@ def on_plandaki_program() -> str:
         return ""
     finally:
         _kernel32.CloseHandle(h)
+
+
+_GEZINME_TUSLARI = {"left": (0x25, 0x4B), "right": (0x27, 0x4D), "end": (0x23, 0x4F)}
+KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP = 0x1, 0x2
+
+
+def gezinme_tusu(ad: str):
+    """Ok/End tuşunu 'genişletilmiş tuş' olarak gönderir. keyboard.send('left') bu
+    bayrağı koymadığı için Windows onu sayısal tuş takımındaki 4 sanıyor; NumLock
+    açıkken Shift+Sol metni seçmiyor, yalnızca imleci kaydırıyor."""
+    vk, tarama = _GEZINME_TUSLARI[ad]
+    _user32.keybd_event(vk, tarama, KEYEVENTF_EXTENDEDKEY, 0)
+    _user32.keybd_event(vk, tarama, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
 
 
 def tek_ornek_kilidi():
@@ -101,6 +127,29 @@ def bip(yuksek: bool):
     threading.Thread(
         target=lambda: winsound.Beep(1200 if yuksek else 600, 90), daemon=True
     ).start()
+
+
+def imlec_adimi(metin: str) -> int:
+    """Metnin üzerinden geçmek için kaç kez sol ok tuşuna basılacağını tahmin eder.
+    Birleşik emojiler (ten rengi, aile emojileri, bayraklar) tek adımdır. Tahmin
+    yanlışsa geri alma zaten seçimi doğrulayıp vazgeçer."""
+    adim, zwj_sonrasi, bolge = 0, False, 0
+    for ch in metin.replace("\r\n", "\n"):
+        if zwj_sonrasi:
+            zwj_sonrasi = False
+            continue
+        if ch == "\u200d":  # sıfır genişlikli birleştirici
+            zwj_sonrasi = True
+            continue
+        if (unicodedata.category(ch) in ("Mn", "Me") or ch in "\ufe0e\ufe0f"
+                or 0x1F3FB <= ord(ch) <= 0x1F3FF):
+            continue
+        if 0x1F1E6 <= ord(ch) <= 0x1F1FF:  # bayrak = iki bölge harfi
+            bolge += 1
+            if bolge % 2 == 0:
+                continue
+        adim += 1
+    return adim
 
 
 # ---------------------------------------------------------------- Pano
@@ -125,12 +174,18 @@ def pano_yaz(metin: str):
 
 # ---------------------------------------------------------------- Uygulama
 
+GERI_AL_SURESI = 300  # saniye; bundan eski çeviriler geri alınamaz
+
+
 class OtoCeviri:
     def __init__(self):
         self.ayarlar = self._ayarlari_yukle()
         self.aktif = bool(self.ayarlar["acilista_aktif"])
+        self.kayit_modu = False  # ayarlar penceresi kısayol kaydederken kancalar susar
         self._gecir = False  # kendi gönderdiğimiz Enter'ı tekrar yakalamamak için
         self._mesgul = threading.Lock()
+        self._kisayol_kaldiricilar = []
+        self._son_ceviri = None  # geri alma için: {pencere, orijinal, ceviri, zaman}
         self.simge = None
 
     # ---- ayarlar
@@ -146,6 +201,9 @@ class OtoCeviri:
             logging.exception("Ayar dosyası okunamadı, varsayılanlar kullanılıyor")
         if ayarlar["hedef_dil"] not in ceviri.DILLER:
             ayarlar["hedef_dil"] = "en"
+        for anahtar in ("ac_kapa_kisayolu", "cevir_kisayolu", "geri_al_kisayolu"):
+            normal, hata = kisayollar.normallestir(str(ayarlar[anahtar]))
+            ayarlar[anahtar] = normal or VARSAYILAN_AYARLAR[anahtar]
         self._ayarlari_kaydet(ayarlar)
         return ayarlar
 
@@ -156,6 +214,15 @@ class OtoCeviri:
         except Exception:
             logging.exception("Ayar dosyası kaydedilemedi")
 
+    def ayarlari_uygula(self, yeni: dict, windows_acilisinda: bool):
+        """Ayarlar penceresinden çağrılır."""
+        self.ayarlar = yeni
+        self._ayarlari_kaydet()
+        self.kisayollari_kur()
+        if windows_acilisinda != baslangic.acik_mi():
+            baslangic.ayarla(windows_acilisinda)
+        self._simgeyi_guncelle()
+
     # ---- açma / kapama
 
     def ac_kapa(self, *_):
@@ -165,16 +232,24 @@ class OtoCeviri:
 
     # ---- klavye kancaları
 
-    def kancalari_kur(self):
-        keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
-        self._kisayol_kancasi(
-            self.ayarlar["ac_kapa_kisayolu"], self.ac_kapa, lambda: True
-        )
-        self._kisayol_kancasi(
-            self.ayarlar["cevir_kisayolu"],
-            self._kisayol_isle,
-            lambda: self.aktif and self.ayarlar["kisayol_modu"] and not self._mesgul.locked(),
-        )
+    def kisayollari_kur(self):
+        for kaldir in self._kisayol_kaldiricilar:
+            try:
+                kaldir()
+            except (KeyError, ValueError):
+                pass
+        a = self.ayarlar
+        self._kisayol_kaldiricilar = [
+            self._kisayol_kancasi(a["ac_kapa_kisayolu"], self.ac_kapa, lambda: True),
+            self._kisayol_kancasi(
+                a["cevir_kisayolu"],
+                self._kisayol_isle,
+                lambda: self.aktif and self.ayarlar["kisayol_modu"] and not self._mesgul.locked(),
+            ),
+            # Geri alınacak bir şey yoksa kısayol programın kendisine gider
+            # (ör. Ctrl+Shift+Z = yinele).
+            self._kisayol_kancasi(a["geri_al_kisayolu"], self._geri_al_isle, self._geri_alinabilir),
+        ]
 
     def _kisayol_kancasi(self, kisayol: str, islev, etkin_mi):
         """Kısayolu yakalar ve son tuşunu yutar; böylece odaktaki programa ulaşmaz
@@ -182,9 +257,9 @@ class OtoCeviri:
 
         keyboard.add_hotkey(suppress=True) değiştirici tuşları geciktirip bozduğu için
         yalnızca son tuşu engelliyoruz; Ctrl/Shift tek başına bir şey yapmaz.
+        Kaldırma fonksiyonu döndürür.
         """
-        parcalar = [p.strip().lower() for p in kisayol.split("+")]
-        tus, gerekli = parcalar[-1], set(parcalar[:-1])
+        tus, gerekli = kisayollar.ayristir(kisayol)
         basili = False
 
         def kanca(olay) -> bool:
@@ -196,7 +271,7 @@ class OtoCeviri:
                 return True
             if basili:  # basılı tutulunca gelen tekrarlar
                 return False
-            if not etkin_mi():
+            if self.kayit_modu or not etkin_mi():
                 return True
             if any(keyboard.is_pressed(d) != (d in gerekli) for d in DEGISTIRICILER):
                 return True
@@ -204,14 +279,16 @@ class OtoCeviri:
             threading.Thread(target=islev, daemon=True).start()
             return False
 
-        keyboard.hook_key(tus, kanca, suppress=True)
+        return keyboard.hook_key(tus, kanca, suppress=True)
 
     def _enter_basildi(self, olay) -> bool:
         """Klavye kancasının içinde çalışır: hızlı olmalı. True = Enter'ı geçir."""
-        if self._gecir or not self.aktif or not self.ayarlar["enter_modu"]:
+        if self._gecir or self.kayit_modu or not self.aktif or not self.ayarlar["enter_modu"]:
             return True
         # Shift+Enter (yeni satır), Ctrl+Enter vb. dokunulmaz.
-        if any(keyboard.is_pressed(t) for t in ("shift", "ctrl", "alt", "windows")):
+        if any(keyboard.is_pressed(t) for t in DEGISTIRICILER):
+            return True
+        if on_plandaki_pid() == os.getpid():  # kendi ayarlar penceremiz
             return True
         if on_plandaki_program() in self.ayarlar["enter_haric_programlar"]:
             return True
@@ -220,10 +297,22 @@ class OtoCeviri:
         threading.Thread(target=self._enter_isle, daemon=True).start()
         return False
 
+    def _geri_alinabilir(self) -> bool:
+        son = self._son_ceviri
+        return (
+            son is not None
+            and not self._mesgul.locked()
+            and son["pencere"] == on_plandaki_pencere()
+            and time.time() - son["zaman"] < GERI_AL_SURESI
+        )
+
     # ---- asıl iş
 
     def _tus_gonder(self, kombinasyon: str):
-        keyboard.send(kombinasyon)
+        if kombinasyon in _GEZINME_TUSLARI:
+            gezinme_tusu(kombinasyon)
+        else:
+            keyboard.send(kombinasyon)
         time.sleep(0.03)
 
     def _enter_gonder(self):
@@ -233,6 +322,12 @@ class OtoCeviri:
             time.sleep(0.05)
         finally:
             self._gecir = False
+
+    def _degistiricileri_bekle(self):
+        """Kullanıcı kısayol tuşlarını bırakana kadar bekle (yoksa Ctrl+Shift+A gider)."""
+        bitis = time.time() + 2
+        while time.time() < bitis and any(keyboard.is_pressed(t) for t in DEGISTIRICILER):
+            time.sleep(0.02)
 
     def _kopyala(self, hepsini_sec: bool) -> str:
         pano_yaz("")
@@ -265,6 +360,7 @@ class OtoCeviri:
 
     def _enter_isle(self):
         with self._mesgul:
+            self._son_ceviri = None  # gönderilen mesaj geri alınamaz
             eski_pano = pano_oku()
             try:
                 metin = self._kopyala(hepsini_sec=True)
@@ -290,12 +386,7 @@ class OtoCeviri:
 
     def _kisayol_isle(self):
         with self._mesgul:
-            # Kullanıcı kısayol tuşlarını bırakana kadar bekle (yoksa Ctrl+Shift+A gider).
-            bitis = time.time() + 2
-            while time.time() < bitis and any(
-                keyboard.is_pressed(t) for t in ("shift", "ctrl", "alt")
-            ):
-                time.sleep(0.02)
+            self._degistiricileri_bekle()
             eski_pano = pano_oku()
             try:
                 metin = self._kopyala(hepsini_sec=False) or self._kopyala(hepsini_sec=True)
@@ -304,15 +395,52 @@ class OtoCeviri:
                 basarili, yeni = self._cevir(metin)
                 if basarili and yeni:
                     self._degistir(yeni)
+                    self._son_ceviri = {
+                        "pencere": on_plandaki_pencere(),
+                        "orijinal": metin,
+                        "ceviri": yeni,
+                        "zaman": time.time(),
+                    }
             except Exception:
                 logging.exception("Kısayol işlenirken hata")
             finally:
                 time.sleep(0.15)
                 pano_yaz(eski_pano)
 
+    def _geri_al_isle(self):
+        """İmleç yapıştırılan çevirinin sonundadır: geriye doğru seç, seçimin gerçekten
+        çeviri olduğunu doğrula, sonra orijinali yapıştır. Doğrulama tutmazsa
+        (metin düzenlenmiş, imleç taşınmış) hiçbir şeye dokunma."""
+        with self._mesgul:
+            son, self._son_ceviri = self._son_ceviri, None
+            if not son:
+                return
+            self._degistiricileri_bekle()
+            eski_pano = pano_oku()
+            try:
+                keyboard.press("shift")
+                try:
+                    for _ in range(imlec_adimi(son["ceviri"])):
+                        gezinme_tusu("left")
+                finally:
+                    keyboard.release("shift")
+                time.sleep(0.05)
+                secili = self._kopyala(hepsini_sec=False).replace("\r\n", "\n")
+                if secili == son["ceviri"].replace("\r\n", "\n"):
+                    self._degistir(son["orijinal"])
+                else:
+                    self._tus_gonder("right")  # seçimi kaldır, imleç yerine dönsün
+                    winsound.MessageBeep(winsound.MB_ICONHAND)
+                    self._bildir("Geri alınamadı: metin değişmiş. Ctrl+Z deneyebilirsin.")
+            except Exception:
+                logging.exception("Geri alınırken hata")
+            finally:
+                time.sleep(0.15)
+                pano_yaz(eski_pano)
+
     # ---- tepsi simgesi
 
-    def _simge_resmi(self) -> Image.Image:
+    def simge_resmi(self) -> Image.Image:
         renk = (34, 160, 90) if self.aktif else (120, 120, 120)
         resim = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         ciz = ImageDraw.Draw(resim)
@@ -330,7 +458,7 @@ class OtoCeviri:
 
     def _simgeyi_guncelle(self):
         if self.simge:
-            self.simge.icon = self._simge_resmi()
+            self.simge.icon = self.simge_resmi()
             self.simge.title = self._ipucu()
             self.simge.update_menu()
 
@@ -355,8 +483,16 @@ class OtoCeviri:
             self._simgeyi_guncelle()
         return isle
 
+    def _windows_acilisini_degistir(self, *_):
+        try:
+            baslangic.ayarla(not baslangic.acik_mi())
+        except OSError:
+            logging.exception("Başlangıç kaydı değiştirilemedi")
+            self._bildir("Windows açılış ayarı değiştirilemedi.")
+        self._simgeyi_guncelle()
+
     def _menu(self) -> pystray.Menu:
-        k = self.ayarlar
+        g = kisayollar.goster
         diller = [
             pystray.MenuItem(
                 ad, self._dil_sec(kod), radio=True,
@@ -367,7 +503,7 @@ class OtoCeviri:
         return pystray.Menu(
             pystray.MenuItem(
                 lambda _: f"Otomatik Çeviri: {'AÇIK' if self.aktif else 'KAPALI'}"
-                          f"  ({k['ac_kapa_kisayolu'].upper()})",
+                          f"  ({g(self.ayarlar['ac_kapa_kisayolu'])})",
                 self.ac_kapa, default=True,
             ),
             pystray.Menu.SEPARATOR,
@@ -380,37 +516,40 @@ class OtoCeviri:
                 checked=lambda _: self.ayarlar["enter_modu"],
             ),
             pystray.MenuItem(
-                f"Kısayolla çevir ({k['cevir_kisayolu'].upper()})",
+                lambda _: f"Kısayolla çevir ({g(self.ayarlar['cevir_kisayolu'])})",
                 self._ayar_degistir("kisayol_modu"),
                 checked=lambda _: self.ayarlar["kisayol_modu"],
             ),
-            pystray.MenuItem(
-                "Açılışta aktif başlasın", self._ayar_degistir("acilista_aktif"),
-                checked=lambda _: self.ayarlar["acilista_aktif"],
-            ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Ayar dosyasını aç", self._ayar_dosyasini_ac),
+            pystray.MenuItem(
+                "Windows açılışında başlat", self._windows_acilisini_degistir,
+                checked=lambda _: baslangic.acik_mi(),
+            ),
+            pystray.MenuItem("Ayarlar…", lambda *_: ayarlar_penceresi.ac(self)),
             pystray.MenuItem("Çıkış", self._cikis),
         )
 
-    def _ayar_dosyasini_ac(self, *_):
-        subprocess.Popen(["notepad.exe", AYAR_DOSYASI])
-
     def _cikis(self, *_):
         keyboard.unhook_all()
+        ayarlar_penceresi.kapat()
         self.simge.stop()
 
     def calistir(self):
-        self.kancalari_kur()
+        try:
+            baslangic.yolu_guncelle()
+        except OSError:
+            logging.exception("Başlangıç kaydı güncellenemedi")
+        keyboard.on_press_key("enter", self._enter_basildi, suppress=True)
+        self.kisayollari_kur()
         self.simge = pystray.Icon(
-            "OtoCeviri", self._simge_resmi(), self._ipucu(), self._menu()
+            "OtoCeviri", self.simge_resmi(), self._ipucu(), self._menu()
         )
 
         def hazir(simge):
             simge.visible = True
             self._bildir(
-                f"Çalışıyor. {self.ayarlar['ac_kapa_kisayolu'].upper()} ile aç/kapat "
-                f"ya da simgeye tıkla."
+                f"Çalışıyor. {kisayollar.goster(self.ayarlar['ac_kapa_kisayolu'])} "
+                f"ile aç/kapat ya da simgeye tıkla."
             )
 
         self.simge.run(setup=hazir)
@@ -421,6 +560,10 @@ def main():
     if kilit is None:
         ctypes.windll.user32.MessageBoxW(None, "OtoÇeviri zaten çalışıyor.", "OtoÇeviri", 0x40)
         return
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # ayarlar penceresi bulanık olmasın
+    except (AttributeError, OSError):
+        pass
     try:
         OtoCeviri().calistir()
     except Exception:

@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 - **Gri** simge: kapalı. **Yeşil** simge: açık.
 - Simgeye **sol tık** ya da **Ctrl+Shift+Y**: Otomatik Çeviri'yi açar/kapatır (açılırken ince, kapanırken kalın bip sesi duyulur).
-- Simgeye **sağ tık**: hedef dil, modlar ve çıkış.
+- Simgeye **sağ tık**: hedef dil, modlar, Windows açılışında başlatma, **Ayarlar…** ve çıkış.
 
 ## Kullanım
 
@@ -23,11 +23,13 @@ Discord, WhatsApp, Telegram, tarayıcıdaki sohbetler ve oyun içi sohbetler iç
 - **Shift+Enter** her zaman normal çalışır (yeni satır).
 - Komutlar (`/play ...`), linkler ve sadece emojiden oluşan mesajlar çevrilmez.
 - Metin zaten hedef dildeyse dokunulmaz.
-- Word, Excel, Not Defteri, VS Code, terminaller ve şifre yöneticilerinde Enter modu devreye girmez. Liste `ayarlar.json` içindeki `enter_haric_programlar` alanında.
+- Word, Excel, Not Defteri, VS Code, terminaller ve şifre yöneticilerinde Enter modu devreye girmez. Listeyi Ayarlar penceresinden düzenleyebilirsin.
 
 **Kısayol modu (Ctrl+Shift+U):** Seçili metni çevirir ve yerine yazar. Seçim yoksa yazı kutusunun tamamını çevirir. Göndermez. Uzun metinlerde ve belgelerde bunu kullan.
 
 Uygulamanın kısayolları diğer programlara iletilmez. Örneğin Discord'da Ctrl+Shift+U dosya seçme penceresini açmaz. Otomatik Çeviri kapalıyken Ctrl+Shift+U programın kendi işlevini görür. Ctrl+Shift+Y ise her zaman OtoÇeviri'ye aittir.
+
+**Geri al (Ctrl+Shift+Z):** Kısayol modundaki son çeviriyi orijinal metne döndürür. Uygulama, çevrilmiş metni seçip gerçekten o çeviri olduğunu doğruladıktan sonra değiştirir. Arada metni düzenlediysen ya da başka yere tıkladıysan hiçbir şeye dokunmaz ve uyarır. Aynı pencerede ve 5 dakika içinde çalışır. Geri alınacak bir şey yoksa Ctrl+Shift+Z programın kendi işlevini görür (ör. yinele). Enter modunda gönderilen mesajlar geri alınamaz.
 
 ## Tarz koruma
 
@@ -39,7 +41,13 @@ Uygulamanın kısayolları diğer programlara iletilmez. Örneğin Discord'da Ct
 
 ## Ayarlar
 
-`ayarlar.json` (menüde "Ayar dosyasını aç"). Kısayolları buradan değiştirebilirsin. Kaydettikten sonra uygulamayı yeniden başlat.
+Tepsi menüsünden **Ayarlar…** penceresini aç:
+- Hedef dil, Enter modu, kısayol modu, açılışta aktif başlama
+- **Windows açılışında başlat:** Kayıt defterinde yalnızca senin kullanıcı hesabına yazılır, yönetici izni gerekmez. Program (ya da ileride .exe) taşınırsa yol bir sonraki açılışta kendiliğinden düzelir.
+- **Kısayollar:** "Değiştir"e bas, yeni tuş kombinasyonuna bas (Esc: iptal). Ctrl, Alt ya da Win tuşlarından biri olmalı.
+- **Enter modunun çalışmayacağı programlar:** Her satıra bir program.
+
+Değişiklikler Kaydet'e basınca hemen uygulanır, yeniden başlatmak gerekmez. Ayarlar `ayarlar.json` dosyasında saklanır.
 
 ## Bilinmesi gerekenler
 

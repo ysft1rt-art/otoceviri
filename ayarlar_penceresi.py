@@ -1,0 +1,271 @@
+"""Ayarlar penceresi (tkinter).
+
+Tepsi menüsü ana iş parçacığını kullandığı için Tk kendi iş parçacığında çalışır.
+Bu iş parçacığı uygulama boyunca yaşar ve tek bir gizli kök pencere tutar; ayarlar
+penceresi her seferinde onun alt penceresi (Toplevel) olarak açılır. Tk'yi her
+açılışta yeni bir iş parçacığında kurup yıkmak, Tk nesneleri başka bir iş
+parçacığında çöpe gidince Tcl'i (tcl86t.dll) çökertiyordu.
+"""
+
+import gc
+import logging
+import queue
+import threading
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+import keyboard
+from PIL import ImageTk
+
+import baslangic
+import ceviri
+import kisayollar
+
+KISAYOL_ALANLARI = [
+    ("ac_kapa_kisayolu", "Aç / Kapat"),
+    ("cevir_kisayolu", "Çevir"),
+    ("geri_al_kisayolu", "Son çeviriyi geri al"),
+]
+
+_istekler = queue.Queue()
+_tk_baslat = threading.Lock()
+_tk_is_parcacigi = None
+_acik_pencere = None
+
+
+def ac(uygulama):
+    """Herhangi bir iş parçacığından çağrılabilir."""
+    global _tk_is_parcacigi
+    with _tk_baslat:
+        if _tk_is_parcacigi is None:
+            _tk_is_parcacigi = threading.Thread(target=_tk_dongusu, daemon=True)
+            _tk_is_parcacigi.start()
+    _istekler.put(uygulama)
+
+
+def kapat():
+    """Uygulamadan çıkarken çağrılır: Tk döngüsünü kendi iş parçacığında durdurur.
+    Yoksa Python, Tk iş parçacığı yaşarken kapanmaya çalışıp takılıyor."""
+    with _tk_baslat:
+        is_parcacigi = _tk_is_parcacigi
+    if is_parcacigi is not None and is_parcacigi.is_alive():
+        _istekler.put(None)
+        is_parcacigi.join(timeout=2)
+
+
+def _tk_dongusu():
+    global _acik_pencere
+    kok = tk.Tk()
+    kok.withdraw()
+
+    def istekleri_isle():
+        try:
+            while True:
+                istek = _istekler.get_nowait()
+                if istek is None:
+                    kok.quit()
+                    return
+                _goster(kok, istek)
+        except queue.Empty:
+            pass
+        except Exception:
+            logging.exception("Ayarlar penceresi açılamadı")
+        kok.after(100, istekleri_isle)
+
+    kok.after(0, istekleri_isle)
+    kok.mainloop()
+    # Tk nesneleri (pencere, değişkenler, resimler) bu iş parçacığında temizlensin;
+    # başka iş parçacığında çöpe giderlerse Tcl "wrong thread" diye çöküyor.
+    _acik_pencere = None
+    kok.destroy()
+    del kok
+    gc.collect()
+
+
+def _goster(kok, uygulama):
+    global _acik_pencere
+    if _acik_pencere is not None and _acik_pencere.winfo_exists():
+        _acik_pencere.one_getir()  # zaten açık
+        return
+    _acik_pencere = AyarlarPenceresi(kok, uygulama)
+
+
+class AyarlarPenceresi(tk.Toplevel):
+    def __init__(self, kok, uygulama):
+        super().__init__(kok)
+        self.uygulama = uygulama
+        a = uygulama.ayarlar
+
+        self.title("OtoÇeviri Ayarları")
+        self.resizable(False, False)
+        self._simge = ImageTk.PhotoImage(uygulama.simge_resmi())
+        self.iconphoto(True, self._simge)
+
+        kod_ad = ceviri.DILLER
+        self._ad_kod = {ad: kod for kod, ad in kod_ad.items()}
+        self.dil = tk.StringVar(value=kod_ad[a["hedef_dil"]])
+        self.enter_modu = tk.BooleanVar(value=a["enter_modu"])
+        self.kisayol_modu = tk.BooleanVar(value=a["kisayol_modu"])
+        self.acilista_aktif = tk.BooleanVar(value=a["acilista_aktif"])
+        self.windows_acilisi = tk.BooleanVar(value=baslangic.acik_mi())
+        self.kisayol = {k: a[k] for k, _ in KISAYOL_ALANLARI}
+        self.kisayol_yazi = {
+            k: tk.StringVar(value=kisayollar.goster(a[k])) for k, _ in KISAYOL_ALANLARI
+        }
+        self._kaydediliyor = False
+
+        govde = ttk.Frame(self, padding=16)
+        govde.grid(sticky="nsew")
+        govde.columnconfigure(0, weight=1)
+
+        # -- Genel
+        genel = ttk.LabelFrame(govde, text="Genel", padding=10)
+        genel.grid(row=0, column=0, sticky="ew")
+        ttk.Label(genel, text="Hedef dil:").grid(row=0, column=0, sticky="w")
+        ttk.Combobox(
+            genel, textvariable=self.dil, values=list(kod_ad.values()),
+            state="readonly", width=18,
+        ).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=(0, 6))
+        for satir, (degisken, yazi) in enumerate([
+            (self.enter_modu, "Enter'a basınca çevirip gönder"),
+            (self.kisayol_modu, "Kısayolla çevir"),
+            (self.acilista_aktif, "Program açılınca Otomatik Çeviri açık başlasın"),
+            (self.windows_acilisi, "Windows açılışında başlat"),
+        ], start=1):
+            ttk.Checkbutton(genel, text=yazi, variable=degisken).grid(
+                row=satir, column=0, columnspan=2, sticky="w", pady=1
+            )
+
+        # -- Kısayollar
+        kisa = ttk.LabelFrame(govde, text="Kısayollar", padding=10)
+        kisa.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        kisa.columnconfigure(1, weight=1)
+        self._degistir_dugmeleri = []
+        for satir, (anahtar, ad) in enumerate(KISAYOL_ALANLARI):
+            ttk.Label(kisa, text=ad + ":").grid(row=satir, column=0, sticky="w", pady=2)
+            ttk.Entry(
+                kisa, textvariable=self.kisayol_yazi[anahtar], state="readonly", width=22
+            ).grid(row=satir, column=1, sticky="ew", padx=8)
+            dugme = ttk.Button(
+                kisa, text="Değiştir", command=lambda k=anahtar: self._kisayol_kaydet(k)
+            )
+            dugme.grid(row=satir, column=2)
+            self._degistir_dugmeleri.append(dugme)
+        self.kisayol_hata = ttk.Label(kisa, foreground="#c0392b", wraplength=340)
+        self.kisayol_hata.grid(row=len(KISAYOL_ALANLARI), column=0, columnspan=3, sticky="w")
+
+        # -- Enter hariç programlar
+        haric = ttk.LabelFrame(govde, text="Enter modunun çalışmayacağı programlar", padding=10)
+        haric.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        haric.columnconfigure(0, weight=1)
+        ttk.Label(
+            haric, text="Her satıra bir program (ör. excel.exe). Kısayol modu bunlarda da çalışır.",
+            foreground="#666",
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 4))
+        self.haric_kutusu = tk.Text(haric, width=44, height=7, font=("Consolas", 9))
+        kaydirma = ttk.Scrollbar(haric, command=self.haric_kutusu.yview)
+        self.haric_kutusu.configure(yscrollcommand=kaydirma.set)
+        self.haric_kutusu.grid(row=1, column=0, sticky="ew")
+        kaydirma.grid(row=1, column=1, sticky="ns")
+        self.haric_kutusu.insert("1.0", "\n".join(a["enter_haric_programlar"]))
+
+        # -- Düğmeler
+        dugmeler = ttk.Frame(govde)
+        dugmeler.grid(row=3, column=0, sticky="e", pady=(14, 0))
+        ttk.Button(dugmeler, text="İptal", command=self.destroy).grid(row=0, column=0, padx=(0, 6))
+        self.kaydet_dugmesi = ttk.Button(dugmeler, text="Kaydet", command=self._kaydet)
+        self.kaydet_dugmesi.grid(row=0, column=1)
+
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.update_idletasks()
+        g, y = self.winfo_width(), self.winfo_height()
+        x = (self.winfo_screenwidth() - g) // 2
+        yy = (self.winfo_screenheight() - y) // 3
+        self.geometry(f"+{x}+{yy}")
+        self.one_getir()
+
+    def destroy(self):
+        global _acik_pencere
+        self.uygulama.kayit_modu = False  # kayıt sürerken kapatılırsa kancalar susmuş kalmasın
+        kok = self.master
+        super().destroy()
+        if _acik_pencere is self:
+            _acik_pencere = None
+        kok.after_idle(gc.collect)  # pencerenin Tk nesneleri bu iş parçacığında temizlensin
+
+    def one_getir(self):
+        self.deiconify()
+        self.lift()
+        self.attributes("-topmost", True)
+        self.after(300, lambda: self.attributes("-topmost", False))
+        self.focus_force()
+
+    # ---- kısayol kaydı
+
+    def _kisayol_kaydet(self, anahtar):
+        if self._kaydediliyor:
+            return
+        self._kaydediliyor = True
+        self.uygulama.kayit_modu = True  # uygulamanın kancaları bu sırada susar
+        for d in self._degistir_dugmeleri + [self.kaydet_dugmesi]:
+            d.state(["disabled"])
+        self.kisayol_hata.config(text="")
+        self.kisayol_yazi[anahtar].set("Tuşlara bas…  (Esc: iptal)")
+        sonuc = {}
+
+        def oku():
+            try:
+                sonuc["ham"] = keyboard.read_hotkey(suppress=False)
+            except Exception as e:
+                sonuc["hata"] = str(e)
+
+        okuyucu = threading.Thread(target=oku, daemon=True)
+        okuyucu.start()
+
+        def bekle():
+            if okuyucu.is_alive():
+                self.after(50, bekle)
+                return
+            self._kaydediliyor = False
+            self.uygulama.kayit_modu = False
+            for d in self._degistir_dugmeleri + [self.kaydet_dugmesi]:
+                d.state(["!disabled"])
+            ham = sonuc.get("ham", "")
+            yeni, hata = (None, None) if ham in ("", "esc") else kisayollar.normallestir(ham)
+            if yeni:
+                self.kisayol[anahtar] = yeni
+            elif hata:
+                self.kisayol_hata.config(text=hata)
+            self.kisayol_yazi[anahtar].set(kisayollar.goster(self.kisayol[anahtar]))
+
+        self.after(50, bekle)
+
+    # ---- kaydet
+
+    def _kaydet(self):
+        degerler = list(self.kisayol.values())
+        if len(set(degerler)) != len(degerler):
+            self.kisayol_hata.config(text="Aynı kısayol birden fazla işe atanamaz.")
+            return
+        haric = []
+        for satir in self.haric_kutusu.get("1.0", "end").splitlines():
+            satir = satir.strip().lower()
+            if satir and satir not in haric:
+                haric.append(satir if satir.endswith(".exe") else satir + ".exe")
+
+        yeni = dict(self.uygulama.ayarlar)
+        yeni.update(
+            hedef_dil=self._ad_kod[self.dil.get()],
+            enter_modu=self.enter_modu.get(),
+            kisayol_modu=self.kisayol_modu.get(),
+            acilista_aktif=self.acilista_aktif.get(),
+            enter_haric_programlar=haric,
+            **self.kisayol,
+        )
+        try:
+            self.uygulama.ayarlari_uygula(yeni, self.windows_acilisi.get())
+        except Exception as e:
+            logging.exception("Ayarlar uygulanamadı")
+            messagebox.showerror("OtoÇeviri", f"Ayarlar kaydedilemedi:\n{e}", parent=self)
+            return
+        self.destroy()
