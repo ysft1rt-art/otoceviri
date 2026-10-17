@@ -223,7 +223,7 @@ Invalid values fall back to the defaults. "Start with Windows" is not stored in 
 
 ## Privacy and security
 
-- **What leaves your computer:** only the text you translate, sent to Google Translate (`translate.googleapis.com`, falling back to `translate.google.com`) over HTTPS. Nothing else is sent anywhere. There are no accounts, analytics or telemetry.
+- **What leaves your computer:** only the text you translate, sent to Google Translate (`translate.googleapis.com`; if it fails or is slow to answer, the same text also goes to `translate.google.com`) over HTTPS. Nothing else is sent anywhere. There are no accounts, analytics or telemetry.
 - **What is stored:** nothing you type is saved. `otoceviri.log` contains **only error messages** and never your text. `ayarlar.json` contains only your settings.
 - **Keyboard hook:** to react to Enter and its hotkeys, OtoÇeviri installs a system-wide keyboard hook. It does **not** record keystrokes. It reads text only by copying the text box at the moment you press Enter or the translate hotkey. Because keyboard hooks are also used by keyloggers, some antivirus programs may flag the app. The full source code is here for you to check.
 - **Clipboard:** your clipboard is used for a moment during each translation and restored right after. Only **text** is restored, so if you had an image or files on the clipboard, they are lost.

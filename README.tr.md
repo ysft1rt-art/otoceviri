@@ -223,7 +223,7 @@ Geçersiz değerler varsayılana döner. "Windows açılışında başlat" bu do
 
 ## Gizlilik ve güvenlik
 
-- **Bilgisayarından ne çıkar:** yalnızca çevirdiğin metin, HTTPS üzerinden Google Çeviri'ye gönderilir (`translate.googleapis.com`, olmazsa `translate.google.com`). Başka hiçbir yere hiçbir şey gönderilmez. Hesap, analiz ya da kullanım verisi toplama yoktur.
+- **Bilgisayarından ne çıkar:** yalnızca çevirdiğin metin, HTTPS üzerinden Google Çeviri'ye gönderilir (`translate.googleapis.com`; o hata verir ya da geç yanıt verirse aynı metin `translate.google.com`'a da gider). Başka hiçbir yere hiçbir şey gönderilmez. Hesap, analiz ya da kullanım verisi toplama yoktur.
 - **Ne saklanır:** yazdığın hiçbir şey kaydedilmez. `otoceviri.log` dosyasında **yalnızca hata mesajları** bulunur, metnin asla bulunmaz. `ayarlar.json`'da yalnızca ayarların durur.
 - **Klavye kancası:** Enter'a ve kısayollara tepki verebilmek için OtoÇeviri sistem genelinde bir klavye kancası kurar. Tuş basımlarını **kaydetmez**. Metni yalnızca Enter'a ya da çeviri kısayoluna bastığın anda yazı kutusunu kopyalayarak okur. Klavye kancaları tuş kaydedicilerde de kullanıldığı için bazı antivirüs programları uygulamayı şüpheli bulabilir. Kaynak kodun tamamı burada, inceleyebilirsin.
 - **Pano:** her çeviri sırasında panon kısa bir süre kullanılır ve hemen ardından eski haline getirilir. Yalnızca **metin** geri konur, panoda resim ya da dosya varsa kaybolur.

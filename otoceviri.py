@@ -5,6 +5,7 @@ Kısayol modu: Kısayola bastığında seçili metin (seçim yoksa kutunun tamam
 Geri al     : Kısayol modundaki son çeviriyi orijinal metne döndürür.
 """
 
+import collections
 import ctypes
 import ctypes.wintypes as wt
 import json
@@ -72,6 +73,7 @@ _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _kernel32.OpenProcess.restype = wt.HANDLE
 _kernel32.CreateMutexW.restype = wt.HANDLE
 _user32.GetForegroundWindow.restype = wt.HWND
+_user32.GetClipboardSequenceNumber.restype = wt.DWORD
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 ERROR_ALREADY_EXISTS = 183
 
@@ -156,6 +158,11 @@ def imlec_adimi(metin: str) -> int:
 
 # ---------------------------------------------------------------- Pano
 
+def pano_sirasi() -> int:
+    """Pano her değiştiğinde artan sayı. Panoyu açmadan okunur: sık sık bakılabilir."""
+    return _user32.GetClipboardSequenceNumber()
+
+
 def pano_oku() -> str:
     for _ in range(5):
         try:
@@ -177,6 +184,8 @@ def pano_yaz(metin: str):
 # ---------------------------------------------------------------- Uygulama
 
 GERI_AL_SURESI = 300  # saniye; bundan eski çeviriler geri alınamaz
+KOPYALAMA_SURESI = 0.5  # saniye; Ctrl+C'den sonra pano bu sürede değişmezse kopyalanacak metin yok
+SECIM_EN_AZ_BEKLEME = 0.15  # saniye; bkz. _secim_bekleme_suresi
 GUNCELLEME_ARALIGI = 3600  # saniye; yeni sürüm ne sıklıkla denetlenir
 
 
@@ -189,6 +198,7 @@ class OtoCeviri:
         self._mesgul = threading.Lock()
         self._kisayol_kaldiricilar = []
         self._son_ceviri = None  # geri alma için: {pencere, orijinal, ceviri, zaman}
+        self._kopyalama_sureleri = {}  # program -> son kopyalamalarda panonun değişme süreleri
         self.guncelleme = None  # daha yeni sürüm yayınlandıysa guncelleme.Guncelleme
         self.simge = None
 
@@ -387,20 +397,37 @@ class OtoCeviri:
         """Kullanıcı kısayol tuşlarını bırakana kadar bekle (yoksa Ctrl+Shift+A gider)."""
         bitis = time.time() + 2
         while time.time() < bitis and any(keyboard.is_pressed(t) for t in DEGISTIRICILER):
-            time.sleep(0.02)
+            time.sleep(0.005)
 
-    def _kopyala(self, hepsini_sec: bool) -> str:
-        pano_yaz("")
+    def _kopyala(self, hepsini_sec: bool, sure: float = KOPYALAMA_SURESI) -> str:
+        """Ctrl+C gönderir ve panoya düşen metni döndürür. Pano `sure` içinde
+        değişmezse (seçim yok, kutu boş, kopyalanamayan alan) boş metin döndürür."""
         if hepsini_sec:
             self._tus_gonder("ctrl+a")
-        self._tus_gonder("ctrl+c")
-        bitis = time.time() + 0.5
-        while time.time() < bitis:
-            metin = pano_oku()
-            if metin:
-                return metin
-            time.sleep(0.02)
+        sira = pano_sirasi()
+        baslangic = time.perf_counter()
+        keyboard.send("ctrl+c")
+        while (gecen := time.perf_counter() - baslangic) < sure:
+            if pano_sirasi() != sira:
+                sira = pano_sirasi()
+                metin = pano_oku()
+                if metin:
+                    sureler = self._kopyalama_sureleri.setdefault(
+                        on_plandaki_program(), collections.deque(maxlen=8))
+                    sureler.append(gecen)
+                    return metin
+            time.sleep(0.005)
         return ""
+
+    def _secim_bekleme_suresi(self) -> float:
+        """Kısayol modunda önce seçili metin kopyalanmaya çalışılır; seçim yoksa pano
+        hiç değişmez ve bu süre her çeviriye eklenir. Odaktaki programın panoya ne
+        kadar sürede yazdığı son kopyalamalardan biliniyorsa onun birkaç katı
+        beklenir; bilinmiyorsa (o programdaki ilk çeviri) KOPYALAMA_SURESI kadar."""
+        sureler = self._kopyalama_sureleri.get(on_plandaki_program())
+        if not sureler:
+            return KOPYALAMA_SURESI
+        return min(KOPYALAMA_SURESI, max(SECIM_EN_AZ_BEKLEME, 3 * max(sureler)))
 
     def _degistir(self, yeni: str):
         pano_yaz(yeni)
@@ -438,8 +465,8 @@ class OtoCeviri:
                     self._tus_gonder("end")  # metin seçili kalmasın, gönderme
                     return
                 if yeni:
-                    self._degistir(yeni)
                     self._ceviri_sesi()
+                    self._degistir(yeni)
                 else:
                     self._tus_gonder("end")
                 self._enter_gonder()
@@ -454,13 +481,14 @@ class OtoCeviri:
             self._degistiricileri_bekle()
             eski_pano = pano_oku()
             try:
-                metin = self._kopyala(hepsini_sec=False) or self._kopyala(hepsini_sec=True)
+                metin = (self._kopyala(hepsini_sec=False, sure=self._secim_bekleme_suresi())
+                         or self._kopyala(hepsini_sec=True))
                 if not metin:
                     return
                 basarili, yeni = self._cevir(metin)
                 if basarili and yeni:
-                    self._degistir(yeni)
                     self._ceviri_sesi()
+                    self._degistir(yeni)
                     self._son_ceviri = {
                         "pencere": on_plandaki_pencere(),
                         "orijinal": metin,
