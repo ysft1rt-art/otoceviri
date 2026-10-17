@@ -1,4 +1,4 @@
-"""Hakkında penceresi: sürüm, güncelleme, GitHub bağlantısı, lisans ve sorumluluk reddi."""
+"""Hakkında penceresi: sürüm, güncelleme, GitHub bağlantısı ve lisans."""
 
 import logging
 import queue
@@ -6,8 +6,6 @@ import threading
 import tkinter as tk
 import webbrowser
 from tkinter import ttk
-
-from PIL import ImageTk
 
 from arayuz import pencere
 from cekirdek import guncelleme, surum
@@ -25,24 +23,20 @@ class HakkindaPenceresi(pencere.TemaliPencere):
 
         govde = ttk.Frame(self, padding=18)
         govde.grid(sticky="nsew")
-        govde.columnconfigure(1, weight=1)
+        govde.columnconfigure(0, weight=1)
 
-        # -- Simge, ad, sürüm
-        self._buyuk_simge = ImageTk.PhotoImage(uygulama.simge_resmi(aktif=True))  # logo: hep yeşil
-        ttk.Label(govde, image=self._buyuk_simge).grid(row=0, column=0, rowspan=2, padx=(0, 14))
-        ttk.Label(govde, text="OtoÇeviri", style="Baslik.TLabel").grid(
-            row=0, column=1, sticky="sw"
-        )
+        # -- Ad, sürüm
+        ttk.Label(govde, text="OtoÇeviri", style="Baslik.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(govde, text=t("surum", surum=surum.SURUM), style="Soluk.TLabel").grid(
-            row=1, column=1, sticky="nw"
+            row=1, column=0, sticky="w"
         )
 
         # -- Açıklama, bağlantı, lisans
         ttk.Label(govde, text=t("aciklama"), wraplength=380).grid(
-            row=2, column=0, columnspan=2, sticky="w", pady=(14, 8)
+            row=2, column=0, sticky="w", pady=(14, 8)
         )
         kaynak = ttk.Frame(govde)
-        kaynak.grid(row=3, column=0, columnspan=2, sticky="w")
+        kaynak.grid(row=3, column=0, sticky="w")
         ttk.Label(kaynak, **self.ikonlu("kod", t("kaynak_kodu"))).grid(row=0, column=0)
         baglanti = ttk.Label(
             kaynak, text=surum.GITHUB_URL.removeprefix("https://"),
@@ -50,11 +44,11 @@ class HakkindaPenceresi(pencere.TemaliPencere):
         )
         baglanti.grid(row=0, column=1, padx=(6, 0))
         baglanti.bind("<Button-1>", lambda _: webbrowser.open(surum.GITHUB_URL))
-        ttk.Label(govde, **self.ikonlu("belge", t("lisans"))).grid(row=4, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        ttk.Label(govde, **self.ikonlu("belge", t("lisans"))).grid(row=4, column=0, sticky="w", pady=(4, 0))
 
         # -- Güncelleme
         guncel = ttk.Frame(govde)
-        guncel.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(14, 0))
+        guncel.grid(row=5, column=0, sticky="ew", pady=(14, 0))
         self._denetle = ttk.Button(
             guncel, command=self._denetlemeyi_baslat,
             **self.ikonlu("yenile", t("guncelleme_denetle"), dugme=True),
@@ -66,20 +60,9 @@ class HakkindaPenceresi(pencere.TemaliPencere):
         if uygulama.guncelleme is not None:
             self._durum_yaz(t("guncelleme_var", surum=uygulama.guncelleme.surum))
 
-        # -- Sorumluluk reddi
-        sorumluluk = ttk.LabelFrame(
-            govde, labelwidget=ttk.Label(govde, **self.ikonlu("uyari", t("sorumluluk_baslik"))),
-            padding=10,
-        )
-        sorumluluk.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(14, 0))
-        ttk.Label(
-            sorumluluk, text=t("sorumluluk_metni"), wraplength=380, style="Soluk.TLabel",
-            justify="left",
-        ).grid(sticky="w")
-
         # -- Kapat
         kapat = ttk.Button(govde, command=self.destroy, **self.ikonlu("cikis", t("kapat")))
-        kapat.grid(row=7, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        kapat.grid(row=6, column=0, sticky="e", pady=(14, 0))
         kapat.focus_set()
         self.bind("<Escape>", lambda _: self.destroy())
         self.bind("<Return>", lambda _: self.destroy())

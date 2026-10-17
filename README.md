@@ -191,7 +191,7 @@ One program per line, such as `excel.exe`. `.exe` is added automatically if you 
 
 ### About
 
-Right-click the tray icon and choose **About** to see the version number, a link to this GitHub page, the license and the disclaimer. Press `Esc`, `Enter` or **Close** to close it.
+Right-click the tray icon and choose **About** to see the version number, a link to this GitHub page and the license. Press `Esc`, `Enter` or **Close** to close it.
 
 ## Hotkeys
 

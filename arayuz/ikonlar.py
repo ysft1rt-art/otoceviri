@@ -32,7 +32,6 @@ GLIFLER = {
     "yenile": "\ue895",
     "kod": "\ue943",
     "belge": "\ue8a5",
-    "uyari": "\ue7ba",
     "tik": "\ue73e",           # i\u015faretli men\u00fc \u00f6\u011fesi
 }
 

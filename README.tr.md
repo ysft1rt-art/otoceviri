@@ -191,7 +191,7 @@ Her satıra bir program yaz, ör. `excel.exe`. Sonuna `.exe` yazmazsan otomatik 
 
 ### Hakkında
 
-Tepsi simgesine sağ tıklayıp **Hakkında**'yı seçersen sürüm numarasını, bu GitHub sayfasının bağlantısını, lisansı ve sorumluluk reddini görürsün. Kapatmak için `Esc`'ye, `Enter`'a ya da **Kapat**'a bas.
+Tepsi simgesine sağ tıklayıp **Hakkında**'yı seçersen sürüm numarasını, bu GitHub sayfasının bağlantısını ve lisansı görürsün. Kapatmak için `Esc`'ye, `Enter`'a ya da **Kapat**'a bas.
 
 ## Kısayollar
 

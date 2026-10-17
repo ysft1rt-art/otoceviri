@@ -65,13 +65,6 @@ METINLER = {
         "aciklama": "Yazdığın metni, yazım tarzını bozmadan seçtiğin dile çevirir.",
         "kaynak_kodu": "Kaynak kodu:",
         "lisans": "MIT Lisansı ile yayınlanmıştır.",
-        "sorumluluk_baslik": "Sorumluluk reddi",
-        "sorumluluk_metni": (
-            "OtoÇeviri bağımsız bir projedir. Google ile bir bağlantısı yoktur, Google "
-            "tarafından onaylanmamış ya da desteklenmemiştir. \"Google Translate\", Google "
-            "LLC'nin ticari markasıdır. Ücretsiz web adresi kişisel ve ticari olmayan "
-            "kullanım için kullanılır. Sorumlu bir şekilde ve kendi sorumluluğunda kullan."
-        ),
         "guncelleme_denetle": "Güncellemeleri denetle",
         "guncelleme_denetleniyor": "Denetleniyor…",
         "guncelleme_yok": "OtoÇeviri güncel.",
@@ -134,13 +127,6 @@ METINLER = {
         "aciklama": "Translates what you type into the language you choose, keeping your writing style.",
         "kaynak_kodu": "Source code:",
         "lisans": "Released under the MIT License.",
-        "sorumluluk_baslik": "Disclaimer",
-        "sorumluluk_metni": (
-            "OtoÇeviri is an independent project. It is not affiliated with, endorsed by or "
-            "sponsored by Google. \"Google Translate\" is a trademark of Google LLC. The free "
-            "web endpoint is used for personal, non-commercial use. Use it responsibly and "
-            "at your own risk."
-        ),
         "guncelleme_denetle": "Check for updates",
         "guncelleme_denetleniyor": "Checking…",
         "guncelleme_yok": "OtoÇeviri is up to date.",
