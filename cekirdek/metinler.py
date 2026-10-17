@@ -66,6 +66,9 @@ METINLER = {
         "kaynak_kodu": "Kaynak kodu:",
         "lisans": "MIT Lisansı ile yayınlanmıştır.",
         "guncelleme_denetle": "Güncellemeleri denetle",
+        "guncelleme_yukle": "Güncellemeyi yükle",
+        "guncelleme_onay": "OtoÇeviri {surum} sürümü indirilip kurulsun mu?\n\n"
+                           "Kurulumdan sonra OtoÇeviri kendiliğinden yeniden açılır.",
         "guncelleme_denetleniyor": "Denetleniyor…",
         "guncelleme_yok": "OtoÇeviri güncel.",
         "guncelleme_var": "Yeni sürüm mevcut: {surum}",
@@ -128,6 +131,9 @@ METINLER = {
         "kaynak_kodu": "Source code:",
         "lisans": "Released under the MIT License.",
         "guncelleme_denetle": "Check for updates",
+        "guncelleme_yukle": "Install update",
+        "guncelleme_onay": "Download and install OtoÇeviri {surum}?\n\n"
+                           "OtoÇeviri will restart on its own after installing.",
         "guncelleme_denetleniyor": "Checking…",
         "guncelleme_yok": "OtoÇeviri is up to date.",
         "guncelleme_var": "New version available: {surum}",

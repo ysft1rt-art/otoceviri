@@ -177,7 +177,7 @@ def pano_yaz(metin: str):
 # ---------------------------------------------------------------- Uygulama
 
 GERI_AL_SURESI = 300  # saniye; bundan eski çeviriler geri alınamaz
-GUNCELLEME_ARALIGI = 24 * 3600  # saniye; yeni sürüm ne sıklıkla denetlenir
+GUNCELLEME_ARALIGI = 3600  # saniye; yeni sürüm ne sıklıkla denetlenir
 
 
 class OtoCeviri:
@@ -255,8 +255,8 @@ class OtoCeviri:
     # ---- güncelleme
 
     def _guncellemeleri_izle(self):
-        """Açılıştan kısa süre sonra ve günde bir yeni sürüm var mı diye bakar.
-        Yalnızca menüye haber verir; kurulum Hakkında penceresindeki butonla yapılır."""
+        """Açılıştan kısa süre sonra ve saatte bir yeni sürüm var mı diye bakar.
+        Yalnızca menüye haber verir; kurulum kullanıcı onaylayınca Hakkında penceresinde yapılır."""
         time.sleep(10)
         while True:
             try:
@@ -563,7 +563,7 @@ class OtoCeviri:
         return pystray.Menu(
             tepsi.Oge(
                 "guncelleme", lambda _: t("menu_guncelleme_mevcut"),
-                lambda *_: hakkinda_penceresi.ac(self),
+                lambda *_: hakkinda_penceresi.guncellemeyi_sor(self),
                 visible=lambda _: self.guncelleme is not None,
             ),
             pystray.Menu.SEPARATOR,

@@ -24,14 +24,15 @@ _tk_is_parcacigi = None
 _acik = {}  # pencere sınıfı -> açık penceresi (her türden en fazla bir tane)
 
 
-def ac(sinif, uygulama):
-    """Verilen pencereyi açar ya da zaten açıksa öne getirir. Her iş parçacığından çağrılabilir."""
+def ac(sinif, uygulama, sonra=None):
+    """Verilen pencereyi açar ya da zaten açıksa öne getirir; sonra(pencere) verilirse
+    ardından Tk iş parçacığında çağrılır. Her iş parçacığından çağrılabilir."""
     global _tk_is_parcacigi
     with _tk_baslat:
         if _tk_is_parcacigi is None:
             _tk_is_parcacigi = threading.Thread(target=_tk_dongusu, daemon=True)
             _tk_is_parcacigi.start()
-    _istekler.put((sinif, uygulama))
+    _istekler.put((sinif, uygulama, sonra))
 
 
 def kapat():
@@ -76,12 +77,14 @@ def _tk_dongusu():
     gc.collect()
 
 
-def _goster(kok, sinif, uygulama):
+def _goster(kok, sinif, uygulama, sonra):
     pencere = _acik.get(sinif)
     if pencere is not None and pencere.winfo_exists():
         pencere.one_getir()
-        return
-    _acik[sinif] = sinif(kok, uygulama)
+    else:
+        pencere = _acik[sinif] = sinif(kok, uygulama)
+    if sonra is not None:
+        sonra(pencere)
 
 
 class TemaliPencere(tk.Toplevel):
