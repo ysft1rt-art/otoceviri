@@ -143,6 +143,8 @@ class TemaliPencere(tk.Toplevel):
         hwnd = int(self.wm_frame(), 16)
         tema.ortul(hwnd, True)
         self.deiconify()
+        # Windows, hiç gösterilmemiş pencereye verilen koyu başlık ayarını yok sayıyor.
+        tema.baslik_cubugu(hwnd, self._uygulanan_koyu)
         self.update()  # örtü altında tamamen boyansın
         tema.ortul(hwnd, False)
         self.one_getir()
