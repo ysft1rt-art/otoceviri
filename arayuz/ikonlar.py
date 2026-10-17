@@ -33,6 +33,7 @@ GLIFLER = {
     "kod": "\ue943",
     "belge": "\ue8a5",
     "uyari": "\ue7ba",
+    "tik": "\ue73e",           # i\u015faretli men\u00fc \u00f6\u011fesi
 }
 
 _YAZI_TIPLERI = ("SegoeIcons.ttf", "segmdl2.ttf")
@@ -82,7 +83,6 @@ _gdi32.CreateDIBSection.argtypes = [
 ]
 
 MENU_RENKLERI = {False: "#1b1b1b", True: "#f2f2f2"}  # açık / koyu menü
-VURGU_RENKLERI = {False: "#0067c0", True: "#4c8dde"}  # tema.RENKLER'deki vurgu ile aynı
 
 
 def menu_boyutu() -> int:
@@ -90,35 +90,39 @@ def menu_boyutu() -> int:
     return ctypes.windll.user32.GetSystemMetrics(49) or 16  # SM_CXSMICON
 
 
-def secili_resim(ad: str, koyu: bool, boyut: int) -> Image.Image | None:
-    """İşaretli menü öğesi: vurgu renginde yuvarlak kare içinde beyaz ikon. Windows,
-    resmi olan öğede tik/radyo işaretini çizmediği için seçili olduğu böyle görünür."""
-    ic = round(boyut * 0.7)
-    ikon = resim(ad, "#ffffff", ic)
+def isaretli_resim(ad: str, koyu: bool, boyut: int, isaretli: bool) -> Image.Image | None:
+    """İşaretlenebilir menü öğesi: solda tik yeri, sağında ikon. Windows, resmi olan
+    öğede tik işaretini çizmediği için tik resmin içine çiziliyor. İşaretsizken tik
+    yeri boş kalır ki aynı menüdeki ikonlar hizalı dursun."""
+    renk = MENU_RENKLERI[koyu]
+    ikon = resim(ad, renk, boyut)
     if ikon is None:
         return None
-    sonuc = Image.new("RGBA", (boyut, boyut), (0, 0, 0, 0))
-    ImageDraw.Draw(sonuc).rounded_rectangle(
-        (0, 0, boyut - 1, boyut - 1), radius=max(2, boyut // 5), fill=VURGU_RENKLERI[koyu]
-    )
-    kenar = (boyut - ic) // 2
-    sonuc.alpha_composite(ikon, (kenar, kenar))
+    bosluk = max(2, boyut // 4)
+    sonuc = Image.new("RGBA", (2 * boyut + bosluk, boyut), (0, 0, 0, 0))
+    if isaretli:
+        sonuc.alpha_composite(resim("tik", renk, boyut))
+    sonuc.alpha_composite(ikon, (boyut + bosluk, 0))
     return sonuc
 
 
 @functools.lru_cache(maxsize=64)
-def menu_bitmapi(ad: str, koyu: bool, secili: bool = False):
-    """Menü öğesine konacak 32 bit, saydam HBITMAP. Menü yeniden kurulsa da aynı
+def menu_bitmapi(ad: str, koyu: bool, isaret: bool | None = None):
+    """Menü öğesine konacak 32 bit, saydam HBITMAP. isaret None değilse öğe işaretlenebilir
+    sayılır ve tik yeri eklenir (bkz. isaretli_resim). Menü yeniden kurulsa da aynı
     tutamaç kullanılır; sayıları az olduğu için hiç silinmez."""
     boyut = menu_boyutu()
-    ikon = secili_resim(ad, koyu, boyut) if secili else resim(ad, MENU_RENKLERI[koyu], boyut)
+    if isaret is None:
+        ikon = resim(ad, MENU_RENKLERI[koyu], boyut)
+    else:
+        ikon = isaretli_resim(ad, koyu, boyut, isaret)
     if ikon is None:
         return None
     r, g, b, a = ikon.split()
     veri = bytes(_on_carp(Image.merge("RGBA", (b, g, r, a)).tobytes()))
 
     baslik = _BITMAPINFOHEADER(
-        biSize=ctypes.sizeof(_BITMAPINFOHEADER), biWidth=boyut, biHeight=-boyut,  # yukarıdan aşağı
+        biSize=ctypes.sizeof(_BITMAPINFOHEADER), biWidth=ikon.width, biHeight=-ikon.height,  # yukarıdan aşağı
         biPlanes=1, biBitCount=32, biCompression=0,
     )
     bitler = ctypes.c_void_p()
