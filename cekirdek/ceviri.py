@@ -4,6 +4,7 @@ import collections
 import functools
 import http.client
 import json
+import math
 import queue
 import re
 import socket
@@ -34,6 +35,12 @@ _ISINMA_ARALIGI = 5  # sn; ağ yokken her tuşta bağlanmayı denemesin
 _YEDEK_EN_AZ_BEKLEME = 0.3  # sn
 _SON_SURELER = collections.deque(maxlen=9)  # sn; açık bağlantıdaki başarılı istekler
 
+# Kısa sürede çok istek gelince Google IP'yi bir süre engelliyor ("olağan dışı
+# trafik" sayfasına yönlendiriyor). Engel sürerken gönderilen her istek onu
+# uzatabildiği için bu süre boyunca Google'a hiç gidilmez.
+ENGEL_BEKLEMESI = 300  # sn
+_engel_bitisi = 0.0  # time.monotonic() değeri
+
 # Hedef dil kodları (Google Translate). Arayüzde görünen adları metinler.py'de.
 DILLER = ("en", "de", "fr", "es", "it", "pt", "nl", "ru", "ar", "ja", "ko", "zh-CN", "tr")
 
@@ -43,6 +50,16 @@ _SON_NOKTALAMA = ".!?…"
 
 class CeviriHatasi(Exception):
     pass
+
+
+class GoogleEngeli(CeviriHatasi):
+    """Google bu IP'den gelen istekleri geçici olarak engelledi."""
+
+
+def engel_kalan_dakika() -> int:
+    """Engel nedeniyle istek gönderilmeyecek süre (yukarı yuvarlanmış dakika); yoksa 0."""
+    kalan = _engel_bitisi - time.monotonic()
+    return math.ceil(kalan / 60) if kalan > 0 else 0
 
 
 class IPv4HTTPSBaglantisi(http.client.HTTPSConnection):
@@ -131,6 +148,8 @@ class _KaliciBaglanti:
         yanit = baglanti.getresponse()
         veri = yanit.read()  # bağlantı yeniden kullanılabilsin diye tamamı okunur
         self._son_kullanim = time.monotonic()
+        if yanit.status == 429 or "/sorry/" in (yanit.getheader("Location") or ""):
+            raise GoogleEngeli(f"HTTP {yanit.status}: Google geçici olarak engelledi")
         if yanit.status != 200:
             raise CeviriHatasi(f"HTTP {yanit.status}")
         _SON_SURELER.append(self._son_kullanim - baslangic)
@@ -181,6 +200,7 @@ def _yedek_beklemesi(baglanti: _KaliciBaglanti) -> float:
 def _yarisarak_gonder(veri: bytes, zaman_asimi: float):
     """İsteği ana sunucuya gönderir; hata alınırsa ya da yanıt gecikirse aynısını
     sıradaki sunucuya da gönderir. İlk gelen geçerli yanıtı (JSON) döndürür."""
+    global _engel_bitisi
     sonuclar = queue.SimpleQueue()
 
     def gonder(baglanti):
@@ -189,7 +209,7 @@ def _yarisarak_gonder(veri: bytes, zaman_asimi: float):
         except Exception as e:
             sonuclar.put((None, e))
 
-    bekleyen, son_hata = 0, None
+    bekleyen, son_hata, engel = 0, None, None
     for sira, baglanti in enumerate(_BAGLANTILAR):
         sonuncu = sira == len(_BAGLANTILAR) - 1
         bekleme = None if sonuncu else _yedek_beklemesi(baglanti)
@@ -204,11 +224,20 @@ def _yarisarak_gonder(veri: bytes, zaman_asimi: float):
             if hata is None:
                 return yanit
             son_hata = hata
+            if isinstance(hata, GoogleEngeli):
+                engel = hata
+        if engel and not bekleyen:
+            break  # engel IP'ye konuyor: yedek sunucuya gidip uzatmayalım
+    if engel:
+        _engel_bitisi = time.monotonic() + ENGEL_BEKLEMESI
+        raise engel
     raise CeviriHatasi(str(son_hata)) from son_hata
 
 
 def google_cevir(metin: str, hedef: str, zaman_asimi: float = 4.0) -> tuple[str, str]:
     """(çeviri, algılanan_kaynak_dil) döndürür."""
+    if engel_kalan_dakika():
+        raise GoogleEngeli("Google engeli sürüyor; istek gönderilmedi")
     veri = urllib.parse.urlencode(
         {"client": "gtx", "sl": "auto", "tl": hedef, "dt": "t", "q": metin}
     ).encode("utf-8")

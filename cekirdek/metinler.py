@@ -29,6 +29,7 @@ METINLER = {
         # Bildirimler
         "bildirim_basladi": "Çalışıyor. {kisayol} ile aç/kapat ya da simgeye tıkla.",
         "bildirim_ceviri_hatasi": "Çeviri yapılamadı. İnternet bağlantını kontrol et.",
+        "bildirim_google_engeli": "Google çok fazla istek yüzünden çeviriyi geçici olarak engelledi. {dakika} dk sonra yeniden denenecek. Bu sırada {kisayol} ile OtoÇeviri'yi kapatabilirsin.",
         "bildirim_geri_alinamadi": "Geri alınamadı: metin değişmiş. Ctrl+Z deneyebilirsin.",
         "bildirim_windows_hatasi": "Windows açılış ayarı değiştirilemedi.",
         "zaten_calisiyor": "OtoÇeviri zaten çalışıyor.",
@@ -97,6 +98,7 @@ METINLER = {
         "menu_cikis": "Exit",
         "bildirim_basladi": "Running. Press {kisayol} or click the icon to turn it on/off.",
         "bildirim_ceviri_hatasi": "Translation failed. Check your internet connection.",
+        "bildirim_google_engeli": "Google has temporarily blocked translation after too many requests. Retrying in {dakika} min. Meanwhile you can turn OtoÇeviri off with {kisayol}.",
         "bildirim_geri_alinamadi": "Couldn't undo: the text has changed. Try Ctrl+Z instead.",
         "bildirim_windows_hatasi": "Couldn't change the Start with Windows setting.",
         "zaten_calisiyor": "OtoÇeviri is already running.",

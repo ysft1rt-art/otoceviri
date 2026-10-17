@@ -250,6 +250,9 @@ python -m cekirdek.ceviri en "merhaba dünya"
 
 If this fails too, a firewall, VPN, proxy or antivirus HTTPS scanning may be blocking Google. OtoÇeviri already forces IPv4, because on some networks IPv6 connections to Google break during the TLS handshake.
 
+**"Google has temporarily blocked translation after too many requests."**
+Google's free endpoint blocks an IP address for a while when it receives many requests in a short time. When that happens, OtoÇeviri sends nothing to Google for 5 minutes and then tries again with your next translation, because each request sent during a block can make it last longer. It usually lifts by itself within a few hours. If you can't wait, restarting your modem often gives you a new IP address (unless your provider gives you a fixed one), and a phone hotspot works right away. Solving Google's "I'm not a robot" check in a browser doesn't help: it only unblocks that browser.
+
 **Nothing happens when I press Enter.**
 Check that the icon is green (Auto-Translate is on), that Enter mode is selected under Translation mode, and that the app isn't on the exclusion list. If the target app runs as administrator, see [Limitations](#limitations).
 

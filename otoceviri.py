@@ -441,7 +441,13 @@ class OtoCeviri:
             return True, ceviri.cevir(metin, self.ayarlar["hedef_dil"])
         except ceviri.CeviriHatasi as e:
             logging.warning("Çeviri başarısız: %s", e)
-            self._bildir(t("bildirim_ceviri_hatasi"))
+            if isinstance(e, ceviri.GoogleEngeli):
+                self._bildir(t(
+                    "bildirim_google_engeli", dakika=max(1, ceviri.engel_kalan_dakika()),
+                    kisayol=kisayollar.goster(self.ayarlar["ac_kapa_kisayolu"]),
+                ))
+            else:
+                self._bildir(t("bildirim_ceviri_hatasi"))
             winsound.MessageBeep(winsound.MB_ICONHAND)
             return False, None
 

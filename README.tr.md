@@ -250,6 +250,9 @@ python -m cekirdek.ceviri en "merhaba dünya"
 
 Bu da başarısız olursa Google'a giden bağlantıyı bir güvenlik duvarı, VPN, proxy ya da antivirüsün HTTPS taraması engelliyor olabilir. OtoÇeviri bağlantıyı zaten IPv4 üzerinden kurar, çünkü bazı ağlarda Google'a IPv6 ile kurulan bağlantı TLS el sıkışmasında kopuyor.
 
+**"Google çok fazla istek yüzünden çeviriyi geçici olarak engelledi."**
+Google'ın ücretsiz adresi, kısa sürede çok istek alınca IP adresini bir süre engeller. Bu olunca OtoÇeviri 5 dakika boyunca Google'a hiçbir şey göndermez, sonra bir sonraki çeviride yeniden dener; çünkü engelliyken gönderilen her istek engeli uzatabilir. Engel genellikle birkaç saat içinde kendiliğinden kalkar. Bekleyemiyorsan modemi yeniden başlatmak çoğu zaman yeni bir IP adresi verir (servis sağlayıcın sabit IP vermiyorsa); telefonun mobil erişim noktası da hemen işe yarar. Tarayıcıda Google'ın "robot değilim" doğrulamasını çözmek işe yaramaz: yalnızca o tarayıcının engelini kaldırır.
+
 **Enter'a basınca hiçbir şey olmuyor.**
 Simgenin yeşil olduğundan (Otomatik Çeviri açık), Çeviri modu altında Enter modunun seçili olduğundan ve programın hariç listesinde olmadığından emin ol. Program yönetici olarak çalışıyorsa [Sınırlamalar](#sınırlamalar) bölümüne bak.
 
