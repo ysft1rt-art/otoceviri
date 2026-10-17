@@ -90,6 +90,7 @@ class TemaliPencere(tk.Toplevel):
 
     def __init__(self, kok, uygulama, baslik: str):
         super().__init__(kok)
+        self.withdraw()  # içerik kurulup tema uygulanana kadar görünmesin (bkz. goster)
         self.uygulama = uygulama
         self._uygulanan_koyu = None
         self._ikonlar = []  # (PhotoImage, ad, rol): tema değişince yeniden boyanır
@@ -131,12 +132,19 @@ class TemaliPencere(tk.Toplevel):
         """ttk olmayan parçaları (Text, açılır liste) boyamak için alt sınıflarda."""
 
     def goster(self):
+        """Pencereyi temalı, yerinde ve tamamen çizilmiş olarak gösterir. Önceden pencere
+        temasız ve köşede açılıp sonra renk ve yer değiştiriyor, parça parça boyanıyordu."""
+        self._temayi_uygula()  # gizliyken: renkler ve koyu başlık çubuğu baştan doğru
         self.update_idletasks()
-        self._temayi_uygula()
-        g, y = self.winfo_width(), self.winfo_height()
+        g, y = self.winfo_reqwidth(), self.winfo_reqheight()
         x = (self.winfo_screenwidth() - g) // 2
         yy = (self.winfo_screenheight() - y) // 3
         self.geometry(f"+{x}+{yy}")
+        hwnd = int(self.wm_frame(), 16)
+        tema.ortul(hwnd, True)
+        self.deiconify()
+        self.update()  # örtü altında tamamen boyansın
+        tema.ortul(hwnd, False)
         self.one_getir()
         self.after(1500, self._sistem_temasini_izle)
 

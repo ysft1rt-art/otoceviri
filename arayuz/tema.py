@@ -53,6 +53,19 @@ def baslik_cubugu(hwnd: int, koyu: bool):
         pass
 
 
+def ortul(hwnd: int, ortulu: bool):
+    """DWM örtüsü (Windows 8+): pencere açık sayılır ve çizilir ama ekranda görünmez.
+    Pencere tamamen boyanana kadar örtülü tutulursa parça parça çizildiği görülmez."""
+    DWMWA_CLOAK = 13
+    deger = ctypes.c_int(1 if ortulu else 0)
+    try:
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_CLOAK, ctypes.byref(deger), ctypes.sizeof(deger)
+        )
+    except (AttributeError, OSError):
+        pass
+
+
 def menu_temasi(tema: str):
     """Sağ tık menülerini temaya uydurur. uxtheme'nin belgelenmemiş ama Windows 10 1903'ten
     beri kararlı olan SetPreferredAppMode (135) ve FlushMenuThemes (136) fonksiyonları."""
